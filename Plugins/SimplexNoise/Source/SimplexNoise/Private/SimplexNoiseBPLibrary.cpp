@@ -471,25 +471,25 @@ float USimplexNoiseBPLibrary::SimplexNoise4D(float x, float y, float z, float w)
 
 float USimplexNoiseBPLibrary::SimplexNoiseScaled1D(float x, float s)
 {
-	return SimplexNoise1D(x)*s;
+	return SimplexNoise1D(x * s);
 }
 
 
 float USimplexNoiseBPLibrary::SimplexNoiseScaled2D(float x, float y, float s)
 {
-	return SimplexNoise2D(x, y)*s;
+	return SimplexNoise2D(x*s, y*s);
 }
 
 
 float USimplexNoiseBPLibrary::SimplexNoiseScaled3D(float x, float y, float z, float s)
 {
-	return SimplexNoise3D(x, y, z)*s;
+	return SimplexNoise3D(x * s, y * s, z * s);
 }
 
 
 float USimplexNoiseBPLibrary::SimplexNoiseScaled4D(float x, float y, float z, float w, float s)
 {
-	return SimplexNoise4D(x, y, z, w) * s;
+	return SimplexNoise4D(x * s, y * s, z * s, w * s);
 };
 
 // Return value in Range between two float numbers
