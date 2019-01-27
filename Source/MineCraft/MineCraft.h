@@ -3,3 +3,6 @@
 #pragma once
 
 #include "CoreMinimal.h"
+
+DECLARE_LOG_CATEGORY_EXTERN(LogChunk, All, All);
+DECLARE_LOG_CATEGORY_EXTERN(LogVoxelGenerator, All, All);

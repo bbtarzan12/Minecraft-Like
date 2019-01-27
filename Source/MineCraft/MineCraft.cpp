@@ -5,3 +5,5 @@
 
 IMPLEMENT_PRIMARY_GAME_MODULE( FDefaultGameModuleImpl, MineCraft, "MineCraft" );
  
+DEFINE_LOG_CATEGORY(LogChunk);
+DEFINE_LOG_CATEGORY(LogVoxelGenerator);
