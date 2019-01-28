@@ -23,25 +23,31 @@ public:
 	FIntVector ChunkSize = FIntVector(32, 32, 32);
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Meta = (ExposeOnSpawn = true), Category = Chunk)
-	float NoiseScale = 0.05f;
+	float NoiseScale = 0.015f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Meta = (ExposeOnSpawn = true), Category = Chunk)
-	float NoiseWeight = 10.0f;
+	float NoiseWeight = 5.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Meta = (ExposeOnSpawn = true), Category = Chunk)
 	int32 VoxelSize = 100;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Meta = (ExposeOnSpawn = true), Category = Chunk)
-	int32 ChunkIteration = 1;
+	int32 ChunkIteration = 2;
+
+	TSet<FIntVector> VisitedChunkLocation;
 
 private:
 	FIntVector PreviousChunkLocation = FIntVector::NoneValue;
 	FIntVector ActorChunkLocation = FIntVector::ZeroValue;
+	FTimerHandle ChunkTimerHandle;
+	TQueue<FVector> ChunkQueue;
+
+	void GenerateChunks();
+	void ProcessChunkQueue();
 
 protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
-	virtual void GenerateChunks();
 
 public:	
 	// Called every frame

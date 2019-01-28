@@ -19,6 +19,8 @@ UVoxelGenerator::UVoxelGenerator()
 void UVoxelGenerator::BeginPlay()
 {
 	Super::BeginPlay();
+
+	GetWorld()->GetTimerManager().SetTimer(ChunkTimerHandle, this, &UVoxelGenerator::ProcessChunkQueue, 0.03f, true);
 }
 
 
@@ -35,17 +37,32 @@ void UVoxelGenerator::GenerateChunks()
 		{
 			for (int Z = ActorChunkLocation.Z - ChunkIteration; Z <= ActorChunkLocation.Z + ChunkIteration; Z++)
 			{
-				const FVector CurrentChunkLocation = FVector(X * ChunkSize.X, Y * ChunkSize.Y, Z * ChunkSize.Z) * VoxelSize;
-				const FRotator ChunkRotation = FRotator::ZeroRotator;
+				const FIntVector CurrentChunkLocation = FIntVector(X * ChunkSize.X, Y * ChunkSize.Y, Z * ChunkSize.Z) * VoxelSize;
 
+				if (VisitedChunkLocation.Contains(CurrentChunkLocation))
+				{
+					continue;
+				}
 
-				AChunk* Chunk = GetWorld()->SpawnActor<AChunk>(CurrentChunkLocation, ChunkRotation, FActorSpawnParameters());
-				Chunk->Init(RandomSeed, ChunkSize, NoiseScale, NoiseWeight, VoxelSize);
-				Chunk->GenerateChunk();
-				Chunk->UpdateMesh();
+				ChunkQueue.Enqueue(FVector(CurrentChunkLocation));
+				VisitedChunkLocation.Add(CurrentChunkLocation);
 			}
 		}
 	}
+}
+
+void UVoxelGenerator::ProcessChunkQueue()
+{
+	if (ChunkQueue.IsEmpty())
+		return;
+
+	const FRotator ChunkRotation = FRotator::ZeroRotator;
+
+	FVector ChunkLocation;
+	ChunkQueue.Dequeue(ChunkLocation);
+
+	AChunk* Chunk = GetWorld()->SpawnActor<AChunk>(FVector(ChunkLocation), ChunkRotation);
+	Chunk->Init(RandomSeed, ChunkSize, NoiseScale, NoiseWeight, VoxelSize);
 }
 
 // Called every frame

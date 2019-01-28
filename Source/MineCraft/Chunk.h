@@ -7,6 +7,31 @@
 #include "ProceduralMeshComponent.h"
 #include "Chunk.generated.h"
 
+class FChunkMeshGenerator;
+
+UENUM()
+enum class EFaceDirection : uint8
+{
+	SOUTH, NORTH, EAST, WEST, TOP, BOTTOM
+};
+
+USTRUCT(BlueprintType)
+struct FVoxelFace
+{
+	GENERATED_USTRUCT_BODY()
+	
+	bool Transparent;
+	int Type;
+	EFaceDirection Side;
+	bool IsValid;
+
+	FORCEINLINE bool operator==(const FVoxelFace & Other) const
+	{
+		return IsValid == true && Other.IsValid == true && Transparent == Other.Transparent && Type == Other.Type;
+	}
+	
+};
+
 UCLASS()
 class MINECRAFT_API AChunk : public AActor
 {
@@ -38,8 +63,17 @@ public:
 	int32 VoxelSizeHalf;
 
 	UPROPERTY()
-	TArray <int32> ChunkField;
+	TArray <FVoxelFace> ChunkField;
 
+	TArray<FVector> Vertices;
+	TArray<int32> Triangles;
+	TArray<FVector> Normals;
+	TArray<FVector2D> UVs;
+	TArray<FProcMeshTangent> Tangents;
+	TArray<FColor> VertexColors;
+
+private:
+	FChunkMeshGenerator* Worker;
 
 public:
 	// Sets default values for this actor's properties
@@ -48,10 +82,9 @@ public:
 protected:
 	// Called when the game starts or when spawned
 	virtual void OnConstruction(const FTransform& Transform) override;
+	virtual void Tick(float DeltaTime) override;
 
 public:
 
 	virtual void Init(int32 RandomSeed, FIntVector ChunkSize, float NoiseScale, float NoiseWeight, int32 VoxelSize);
-	virtual void GenerateChunk();
-	virtual void UpdateMesh();
 };
