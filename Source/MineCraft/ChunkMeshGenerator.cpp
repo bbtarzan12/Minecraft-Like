@@ -305,7 +305,10 @@ void FChunkMeshGenerator::UpdateQuad(FVector BottomLeft, FVector TopLeft, FVecto
 	VertexColors.Add(Color);
 	VertexColors.Add(Color);
 
-	UVs.Append(bUVs, ARRAY_COUNT(bUVs));
+	UVs.Add(FVector2D(0, 0));
+	UVs.Add(FVector2D(0, Height));
+	UVs.Add(FVector2D(Width, Height));
+	UVs.Add(FVector2D(Width, 0));
 
 	Normals.Append(bNormals[(int32)VoxelFace.Side], ARRAY_COUNT(bNormals[(int32)VoxelFace.Side]));
 }
