@@ -369,8 +369,6 @@ void FChunkMeshGenerator::UpdateQuad(FVector BottomLeft, FVector TopLeft, FVecto
 			break;
 	}
 
-
-
 	Normals.Append(bNormals[(int32)VoxelFace.Side], ARRAY_COUNT(bNormals[(int32)VoxelFace.Side]));
 	Tangents.Append(bTangents[(int32)VoxelFace.Side], ARRAY_COUNT(bTangents[(int32)VoxelFace.Side]));
 }

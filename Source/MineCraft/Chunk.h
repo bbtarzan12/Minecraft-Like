@@ -15,13 +15,19 @@ enum class EFaceDirection : uint8
 	FRONT, BACK, RIGHT, LEFT, TOP, BOTTOM,
 };
 
+UENUM()
+enum class EVoxelType : uint8
+{
+	GRASS, DIRT
+};
+
 USTRUCT(BlueprintType)
 struct FVoxelFace
 {
 	GENERATED_USTRUCT_BODY()
 	
 	bool Transparent;
-	int Type;
+	EVoxelType Type;
 	EFaceDirection Side;
 	bool IsValid;
 
@@ -74,6 +80,8 @@ public:
 
 private:
 	FChunkMeshGenerator* Worker;
+
+	static TArray<UMaterialInstanceDynamic*> VoxelMaterials;
 
 public:
 	// Sets default values for this actor's properties
