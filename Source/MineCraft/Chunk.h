@@ -21,7 +21,7 @@ enum class EVoxelType : uint8
 	GRASS, DIRT
 };
 
-USTRUCT(BlueprintType)
+USTRUCT()
 struct FVoxelFace
 {
 	GENERATED_USTRUCT_BODY()
@@ -80,8 +80,6 @@ public:
 
 private:
 	FChunkMeshGenerator* Worker;
-
-	static TArray<UMaterialInstanceDynamic*> VoxelMaterials;
 
 public:
 	// Sets default values for this actor's properties

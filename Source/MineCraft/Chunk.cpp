@@ -7,40 +7,11 @@
 #include "ChunkMeshGenerator.h"
 #include "Async/ParallelFor.h"
 
-TArray<UMaterialInstanceDynamic*> AChunk::VoxelMaterials;
-
 // Sets default values
 AChunk::AChunk()
 {
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
-
-	if (VoxelMaterials.Num() == 0)
-	{
-		const UEnum* VoxelTypePtr = FindObject<UEnum>(ANY_PACKAGE, TEXT("EVoxelType"), true);
-		if (VoxelTypePtr != nullptr)
-		{
-			for (int i = 0; i < VoxelTypePtr->NumEnums() - 1; i++)
-			{
-				EVoxelType VoxelType = (EVoxelType)(VoxelTypePtr->GetValueByIndex(i));
-				FName VoxelEnumName = VoxelTypePtr->GetNameByIndex(i);
-				FString VoxelMaterialName = VoxelEnumName.ToString();
-				VoxelMaterialName.RemoveFromStart("EVoxelType::");
-
-				FString MaterialPath = "MaterialInstanceConstant'/Game/Materials/Voxel/";
-				MaterialPath.Append(VoxelMaterialName);
-				MaterialPath.AppendChar('.');
-				MaterialPath.Append(VoxelMaterialName);
-				MaterialPath.AppendChar('\'');
-				ConstructorHelpers::FObjectFinder<UMaterialInterface> FoundMaterial(*MaterialPath);
-				if (FoundMaterial.Succeeded())
-				{
-					UE_LOG(LogChunk, Log, TEXT("Load Voxel Material : %s"), *FoundMaterial.Object->GetFName().ToString());
-					VoxelMaterials.Add((UMaterialInstanceDynamic*)FoundMaterial.Object);
-				}
-			}
-		}
-	}
 }
 
 void AChunk::OnConstruction(const FTransform& Transform)
@@ -65,7 +36,6 @@ void AChunk::Tick(float DeltaTime)
 
 	ProceduralMeshComponent->ClearAllMeshSections();
 	ProceduralMeshComponent->CreateMeshSection(0, Worker->Vertices, Worker->Triangles, Worker->Normals, Worker->UVs, Worker->VertexColors, Worker->Tangents, true);
-	ProceduralMeshComponent->SetMaterial(0, VoxelMaterials[0]);
 
 	SetActorTickEnabled(false);
 	delete Worker;

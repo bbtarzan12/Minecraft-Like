@@ -100,8 +100,18 @@ void FChunkMeshGenerator::GenerateChunk()
 				ScaledNoiseOffset.Y = CurrentChunkLocation.Y * NoiseScale;
 
 				float NoiseValue = USimplexNoiseBPLibrary::SimplexNoiseScaled2D(ScaledNoiseOffset.X, ScaledNoiseOffset.Y, NoiseWeight);
+				
 				FVoxelFace VoxelFace = FVoxelFace();
-				VoxelFace.IsValid = NoiseValue > CurrentChunkLocation.Z;
+				if (NoiseValue + 3 > CurrentChunkLocation.Z)
+				{
+					VoxelFace.Type = EVoxelType::GRASS;
+					VoxelFace.IsValid = true;
+				}
+				if (NoiseValue + 2 > CurrentChunkLocation.Z)
+				{
+					VoxelFace.Type = EVoxelType::DIRT;
+					VoxelFace.IsValid = true;
+				}
 				VoxelData[Index] = VoxelFace;
 			}
 		}
@@ -234,14 +244,7 @@ void FChunkMeshGenerator::UpdateMesh()
 								TArray<int32> DU = { 0,0,0 };
 								TArray<int32> DV = { 0,0,0 };
 
-								DU[0] = 0;
-								DU[1] = 0;
-								DU[2] = 0;
 								DU[u] = w;
-
-								DV[0] = 0;
-								DV[1] = 0;
-								DV[2] = 0;
 								DV[v] = h;
 
 								/*
@@ -309,7 +312,8 @@ void FChunkMeshGenerator::UpdateQuad(FVector BottomLeft, FVector TopLeft, FVecto
 	Triangles.Add((BackFace ? bBackTriangles : bFrontTriangles)[5] + NumTriangle);
 	NumTriangle += 4;
 
-	FColor Color = FColor(255, 255, 255, 255);
+	FColor Color = GetQuinaryColor((int32)VoxelFace.Type);
+	UE_LOG(LogChunk, Log, TEXT("%d -> %d %d %d %d"), (int32)VoxelFace.Type, Color.R, Color.G, Color.B, Color.A);
 	VertexColors.Add(Color);
 	VertexColors.Add(Color);
 	VertexColors.Add(Color);
@@ -371,4 +375,47 @@ void FChunkMeshGenerator::UpdateQuad(FVector BottomLeft, FVector TopLeft, FVecto
 
 	Normals.Append(bNormals[(int32)VoxelFace.Side], ARRAY_COUNT(bNormals[(int32)VoxelFace.Side]));
 	Tangents.Append(bTangents[(int32)VoxelFace.Side], ARRAY_COUNT(bTangents[(int32)VoxelFace.Side]));
+}
+
+FColor FChunkMeshGenerator::GetQuinaryColor(int32 Number)
+{
+	FColor Color = FColor(0, 0, 0, 0);
+	const int32 Quater = FColor::Red.R / 4;
+
+	int32 Quotient = Number / 4;
+	int32 Remainder = Number % 4;
+	Number = Remainder;
+	Color.A = Number * Quater;
+
+	if (Quotient == 0)
+	{
+		return Color;
+	}
+
+	Quotient = Number / 4;
+	Remainder = Number % 4;
+	Number = Remainder;
+	Color.B = Number * Quater;
+
+	if (Quotient == 0)
+	{
+		return Color;
+	}
+
+	Quotient = Number / 4;
+	Remainder = Number % 4;
+	Number = Remainder;
+	Color.G = Number * Quater;
+
+	if (Quotient == 0)
+	{
+		return Color;
+	}
+
+	Quotient = Number / 4;
+	Remainder = Number % 4;
+	Number = Remainder;
+	Color.R = Number * Quater;
+
+	return Color;
 }

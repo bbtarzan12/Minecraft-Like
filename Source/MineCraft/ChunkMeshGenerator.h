@@ -59,4 +59,5 @@ public:
 	void GenerateChunk();
 	void UpdateMesh();
 	void UpdateQuad(FVector BottomLeft, FVector TopLeft, FVector TopRight, FVector BottomRight, int32 Width, int32 Height, FVoxelFace VoxelFace, bool BackFace);
+	FColor GetQuinaryColor(int32 Number);
 };
