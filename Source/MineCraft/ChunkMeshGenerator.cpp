@@ -2,19 +2,29 @@
 #include "Chunk.h"
 #include "MineCraft.h"
 #include "SimplexNoiseBPLibrary.h"
+#include "ProceduralMeshComponent.h"
 
-const FVector2D bUVs[] = { FVector2D(0, 0), FVector2D(0, 1), FVector2D(1, 1), FVector2D(1, 0) };
 const int32 bBackTriangles[] = { 2,3,1, 1,0,2 };
 const int32 bFrontTriangles[] = { 2,0,1, 1,3,2 };
-const FVector bNormals[][6] =
+const FVector bNormals[][4] =
 {
-	{ FVector(0, 1, 0), FVector(0, 1, 0),  FVector(0, 1, 0), FVector(0, 1, 0) },
-	{ FVector(0, -1, 0),FVector(0, -1, 0), FVector(0, -1, 0),FVector(0, -1, 0) },
-	{ FVector(1, 0, 0), FVector(1, 0, 0),  FVector(1, 0, 0), FVector(1, 0, 0) },
-	{ FVector(-1, 0, 0),FVector(-1, 0, 0), FVector(-1, 0, 0),FVector(-1, 0, 0) },
-	{ FVector(0, 0, 1), FVector(0, 0, 1),  FVector(0, 0, 1), FVector(0, 0, 1) },
-	{ FVector(0, 0, -1),FVector(0, 0, -1), FVector(0, 0, -1),FVector(0, 0, -1) }
+	{ FVector(1, 0, 0),  FVector(1, 0, 0),  FVector(1, 0, 0),  FVector(1, 0, 0)  },
+	{ FVector(-1, 0, 0), FVector(-1, 0, 0), FVector(-1, 0, 0), FVector(-1, 0, 0) },
+	{ FVector(0, 1, 0), FVector(0, 1, 0), FVector(0, 1, 0), FVector(0, 1, 0) },
+	{ FVector(0, -1, 0),  FVector(0, -1, 0),  FVector(0, -1, 0),  FVector(0, -1, 0)  },
+	{ FVector(0, 0, 1),  FVector(0, 0, 1),  FVector(0, 0, 1),  FVector(0, 0, 1)  },
+	{ FVector(0, 0, -1), FVector(0, 0, -1), FVector(0, 0, -1), FVector(0, 0, -1) }
 };
+const FProcMeshTangent bTangents[][4] =
+{
+	{FProcMeshTangent(0, 1, 0),  FProcMeshTangent(0, 1, 0),  FProcMeshTangent(0, 1, 0),  FProcMeshTangent(0, 1, 0)  },
+	{FProcMeshTangent(0, -1, 0), FProcMeshTangent(0, -1, 0), FProcMeshTangent(0, -1, 0), FProcMeshTangent(0, -1, 0) },
+	{FProcMeshTangent(-1, 0, 0), FProcMeshTangent(-1, 0, 0), FProcMeshTangent(-1, 0, 0), FProcMeshTangent(-1, 0, 0) },
+	{FProcMeshTangent(1, 0, 0),  FProcMeshTangent(1, 0, 0),  FProcMeshTangent(1, 0, 0),  FProcMeshTangent(1, 0, 0)  },
+	{FProcMeshTangent(0, 1, 0),  FProcMeshTangent(0, 1, 0),  FProcMeshTangent(0, 1, 0),  FProcMeshTangent(0, 1, 0)  },
+	{FProcMeshTangent(0, -1, 0), FProcMeshTangent(0, -1, 0), FProcMeshTangent(0, -1, 0), FProcMeshTangent(0, -1, 0) }
+};
+
 
 bool FChunkMeshGenerator::IsFinished() const
 {
@@ -102,7 +112,7 @@ void FChunkMeshGenerator::GenerateChunk()
 void FChunkMeshGenerator::UpdateMesh()
 {
 	int32 i, j, k, l, w, h, u, v, n;
-	EFaceDirection Side = EFaceDirection::SOUTH;
+	EFaceDirection Side = EFaceDirection::LEFT;
 
 	TArray<FVoxelFace> Mask;
 	Mask.SetNumUninitialized(ChunkSize.X * ChunkSize.Y);
@@ -132,9 +142,9 @@ void FChunkMeshGenerator::UpdateMesh()
 			/*
 			 * Here we're keeping track of the side that we're meshing.
 			 */
-			if (Dimension == 0) { Side = BackFace ? EFaceDirection::WEST : EFaceDirection::EAST; }
-			else if (Dimension == 1) { Side = BackFace ? EFaceDirection::BOTTOM : EFaceDirection::TOP; }
-			else if (Dimension == 2) { Side = BackFace ? EFaceDirection::SOUTH : EFaceDirection::NORTH; }
+			if (Dimension == 0) { Side = BackFace ? EFaceDirection::BACK : EFaceDirection::FRONT; }
+			else if (Dimension == 1) { Side = BackFace ? EFaceDirection::LEFT : EFaceDirection::RIGHT; }
+			else if (Dimension == 2) { Side = BackFace ? EFaceDirection::BOTTOM : EFaceDirection::TOP; }
 
 			/*
 			 * We move through the dimension from front to back
@@ -305,10 +315,62 @@ void FChunkMeshGenerator::UpdateQuad(FVector BottomLeft, FVector TopLeft, FVecto
 	VertexColors.Add(Color);
 	VertexColors.Add(Color);
 
-	UVs.Add(FVector2D(0, 0));
-	UVs.Add(FVector2D(0, Height));
-	UVs.Add(FVector2D(Width, Height));
-	UVs.Add(FVector2D(Width, 0));
+	switch (VoxelFace.Side)
+	{
+		case EFaceDirection::FRONT:
+		{
+			UVs.Add(FVector2D(Width, Height));
+			UVs.Add(FVector2D(Width, 0));
+			UVs.Add(FVector2D(0, Height));
+			UVs.Add(FVector2D(0, 0));
+			break;
+		}
+		case EFaceDirection::BACK:
+		{
+			UVs.Add(FVector2D(0, Height));
+			UVs.Add(FVector2D(0, 0));
+			UVs.Add(FVector2D(Width, Height));
+			UVs.Add(FVector2D(Width, 0));
+			break;
+		}
+		case EFaceDirection::RIGHT:
+		{
+			UVs.Add(FVector2D(0, Width));
+			UVs.Add(FVector2D(Height, Width));
+			UVs.Add(FVector2D(0, 0));
+			UVs.Add(FVector2D(Height, 0));
+			break;
+		}
+		case EFaceDirection::LEFT:
+		{
+			UVs.Add(FVector2D(Height, Width));
+			UVs.Add(FVector2D(0, Width));
+			UVs.Add(FVector2D(Height, 0));
+			UVs.Add(FVector2D(0, 0));
+			break;
+		}
+		case EFaceDirection::TOP:
+		{
+			UVs.Add(FVector2D(0, 0));
+			UVs.Add(FVector2D(0, Height));
+			UVs.Add(FVector2D(Width, 0));
+			UVs.Add(FVector2D(Width, Height));
+			break;
+		}
+		case EFaceDirection::BOTTOM:
+		{
+			UVs.Add(FVector2D(Width, 0));
+			UVs.Add(FVector2D(Width, Height));
+			UVs.Add(FVector2D(0, 0));
+			UVs.Add(FVector2D(0, Height));
+			break;
+		}
+		default:
+			break;
+	}
+
+
 
 	Normals.Append(bNormals[(int32)VoxelFace.Side], ARRAY_COUNT(bNormals[(int32)VoxelFace.Side]));
+	Tangents.Append(bTangents[(int32)VoxelFace.Side], ARRAY_COUNT(bTangents[(int32)VoxelFace.Side]));
 }

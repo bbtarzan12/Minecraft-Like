@@ -12,7 +12,7 @@ class FChunkMeshGenerator;
 UENUM()
 enum class EFaceDirection : uint8
 {
-	SOUTH, NORTH, EAST, WEST, TOP, BOTTOM
+	FRONT, BACK, RIGHT, LEFT, TOP, BOTTOM,
 };
 
 USTRUCT(BlueprintType)

@@ -17,12 +17,19 @@ class FChunkMeshGenerator : public FRunnable
 	bool bIsFinished;
 
 public:
+	UPROPERTY()
 	TArray<FVoxelFace> VoxelData;
+	UPROPERTY()
 	TArray<FVector> Vertices;
+	UPROPERTY()
 	TArray<int32> Triangles;
+	UPROPERTY()
 	TArray<FVector> Normals;
+	UPROPERTY()
 	TArray<FVector2D> UVs;
+	UPROPERTY()
 	TArray<FProcMeshTangent> Tangents;
+	UPROPERTY()
 	TArray<FColor> VertexColors;
 
 	FIntVector ChunkLocation;
