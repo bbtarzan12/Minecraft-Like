@@ -1,9 +1,12 @@
-#include "ChunkMeshGenerator.h"
-#include "Chunk.h"
+// Fill out your copyright notice in the Description page of Project Settings.
+
+#include "ChunkMeshTask.h"
 #include "MineCraft.h"
-#include "SimplexNoiseBPLibrary.h"
+#include "Chunk.h"
 #include "ProceduralMeshComponent.h"
+#include "SimplexNoiseBPLibrary.h"
 #include "Public/VoxelUtil.h"
+#include "Async.h"
 
 const int32 bBackTriangles[] = { 2,3,1, 1,0,2 };
 const int32 bFrontTriangles[] = { 2,0,1, 1,3,2 };
@@ -27,56 +30,43 @@ const FProcMeshTangent bTangents[][4] =
 };
 
 
-bool FChunkMeshGenerator::IsFinished() const
+ChunkMeshTask::ChunkMeshTask(AChunk* Owner, const FIntVector& ChunkLocation, const FIntVector& ChunkSize, const int32& VoxelSize, const float& NoiseWeight, const float& NoiseScale, const int32& RandomSeed)
 {
-	return bIsFinished;
-}
 
-FChunkMeshGenerator::FChunkMeshGenerator(const FIntVector& ChunkLocation, const FIntVector& ChunkSize, const int32& VoxelSize, const float& NoiseWeight, const float& NoiseScale, const int32& RandomSeed)
-{
 	this->NoiseWeight = NoiseWeight;
 	this->NoiseScale = NoiseScale;
 	this->RandomSeed = RandomSeed;
 	this->ChunkLocation = ChunkLocation;
 	this->ChunkSize = ChunkSize;
 	this->VoxelSize = VoxelSize;
-	Thread = FRunnableThread::Create(this, TEXT("FChunkMeshGenerator"), 0, TPri_BelowNormal); //windows default = 8mb for thread, could specify more
+	this->Owner = Owner;
 }
 
-FChunkMeshGenerator::~FChunkMeshGenerator()
+ChunkMeshTask::~ChunkMeshTask()
 {
-	delete Thread;
-	Thread = nullptr;
 }
 
-//Init
-bool FChunkMeshGenerator::Init()
+FORCEINLINE TStatId ChunkMeshTask::GetStatId() const
 {
-	bIsFinished = false;
-	return true;
+	RETURN_QUICK_DECLARE_CYCLE_STAT(ChunkMeshTask, STATGROUP_ThreadPoolAsyncTasks);
 }
 
-//Run
-uint32 FChunkMeshGenerator::Run()
+void ChunkMeshTask::DoWork()
 {
 	GenerateChunk();
 	UpdateMesh();
-	bIsFinished = true;
-	return 0;
+	AsyncTask(ENamedThreads::GameThread, [&]()
+	{
+		Owner->GenerateMesh(MeshData);
+	});
 }
 
-//stop
-void FChunkMeshGenerator::Stop()
-{
-	StopTaskCounter.Increment();
-}
-
-FVoxelFace FChunkMeshGenerator::GetVoxelFace(int32 X, int32 Y, int32 Z, EFaceDirection Side)
+FVoxelFace ChunkMeshTask::GetVoxelFace(int32 X, int32 Y, int32 Z, EFaceDirection Side)
 {
 	int32 Index = VoxelUtil::Convert3Dto1DIndex(X, Y, Z, ChunkSize);
 	VoxelData[Index].Side = Side;
 	VoxelData[Index].Transparent = false;
-	FIntVector OppositeCoord = VoxelUtil::GetNeighborIndex(X, Y, Z, (int32) Side);
+	FIntVector OppositeCoord = VoxelUtil::GetNeighborIndex(X, Y, Z, (int32)Side);
 	int32 NeighborIndex = VoxelUtil::Convert3Dto1DIndex(OppositeCoord, ChunkSize);
 	if (VoxelUtil::BoundaryCheck3D(OppositeCoord, ChunkSize))
 	{
@@ -85,11 +75,11 @@ FVoxelFace FChunkMeshGenerator::GetVoxelFace(int32 X, int32 Y, int32 Z, EFaceDir
 			VoxelData[Index].Transparent = true;
 		}
 	}
-	
+
 	return VoxelData[Index];
 }
 
-void FChunkMeshGenerator::GenerateChunk()
+void ChunkMeshTask::GenerateChunk()
 {
 	VoxelData.SetNumUninitialized(ChunkSize.X * ChunkSize.Y * ChunkSize.Z);
 	USimplexNoiseBPLibrary::setNoiseSeed(RandomSeed);
@@ -112,7 +102,7 @@ void FChunkMeshGenerator::GenerateChunk()
 				ScaledNoiseOffset.Y = CurrentChunkLocation.Y * NoiseScale;
 
 				float NoiseValue = USimplexNoiseBPLibrary::SimplexNoiseScaled2D(ScaledNoiseOffset.X, ScaledNoiseOffset.Y, NoiseWeight);
-				
+
 				FVoxelFace VoxelFace = FVoxelFace();
 				if (NoiseValue + 10 > CurrentChunkLocation.Z)
 				{
@@ -135,7 +125,7 @@ void FChunkMeshGenerator::GenerateChunk()
 	}
 }
 
-void FChunkMeshGenerator::UpdateMesh()
+void ChunkMeshTask::UpdateMesh()
 {
 	int32 i, j, k, l, w, h, u, v, n;
 	EFaceDirection Side = EFaceDirection::LEFT;
@@ -308,12 +298,11 @@ void FChunkMeshGenerator::UpdateMesh()
 					}
 				}
 			}
-			//FPlatformProcess::Sleep(0.01);
 		}
 	}
 }
 
-void FChunkMeshGenerator::UpdateQuad(FVector BottomLeft, FVector TopLeft, FVector TopRight, FVector BottomRight, int32 Width, int32 Height, FVoxelFace VoxelFace, bool BackFace)
+void ChunkMeshTask::UpdateQuad(FVector BottomLeft, FVector TopLeft, FVector TopRight, FVector BottomRight, int32 Width, int32 Height, FVoxelFace VoxelFace, bool BackFace)
 {
 	FChunkMesh* ChunkMesh;
 	if (MeshData.Contains(VoxelFace.Type))

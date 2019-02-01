@@ -33,7 +33,7 @@ public:
 	int32 VoxelSize = 100;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Meta = (ExposeOnSpawn = true), Category = Chunk)
-	int32 ChunkIteration = 2;
+	int32 ChunkIteration = 4;
 
 	TSet<FIntVector> VisitedChunkLocation;
 
@@ -42,8 +42,6 @@ private:
 	FIntVector ActorChunkLocation = FIntVector::ZeroValue;
 	FTimerHandle ChunkTimerHandle;
 	TQueue<FVector> ChunkQueue;
-
-	AChunk* CurrentChunk;
 
 	void GenerateChunks();
 	void ProcessChunkQueue();

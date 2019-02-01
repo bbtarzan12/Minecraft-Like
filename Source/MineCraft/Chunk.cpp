@@ -4,8 +4,8 @@
 #include "SimplexNoiseBPLibrary.h"
 #include "MineCraft.h"
 #include "DrawDebugHelpers.h"
-#include "ChunkMeshGenerator.h"
 #include "Async/ParallelFor.h"
+#include "Public/ChunkMeshTask.h"
 
 TMap<EVoxelType, UMaterialInstanceDynamic*> AChunk::VoxelMaterials;
 
@@ -13,7 +13,7 @@ TMap<EVoxelType, UMaterialInstanceDynamic*> AChunk::VoxelMaterials;
 AChunk::AChunk()
 {
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bCanEverTick = false;
 
 	if (VoxelMaterials.Num() == 0)
 	{
@@ -54,28 +54,6 @@ void AChunk::OnConstruction(const FTransform& Transform)
 	RootComponent->SetWorldTransform(Transform);
 }
 
-void AChunk::Tick(float DeltaTime)
-{
-	Super::Tick(DeltaTime);
-
-	if (Worker == nullptr || !Worker->IsFinished())
-	{
-		return;
-	}
-
-	ProceduralMeshComponent->ClearAllMeshSections();
-	for (auto & Pair : Worker->MeshData)
-	{
-		int32 SectionIndex = (int32) Pair.Key - 1;
-		FChunkMesh* ChunkMesh = Pair.Value;
-		ProceduralMeshComponent->CreateMeshSection(SectionIndex, ChunkMesh->Vertices, ChunkMesh->Triangles, ChunkMesh->Normals, ChunkMesh->UVs, ChunkMesh->VertexColors, ChunkMesh->Tangents, true);
-		ProceduralMeshComponent->SetMaterial(SectionIndex, VoxelMaterials[Pair.Key]);
-	}
-
-	SetActorTickEnabled(false);
-	delete Worker;
-}
-
 void AChunk::Init(int32 RandomSeed, FIntVector ChunkSize, float NoiseScale, float NoiseWeight, int32 VoxelSize)
 {
 	this->RandomSeed = RandomSeed;
@@ -92,13 +70,17 @@ void AChunk::Init(int32 RandomSeed, FIntVector ChunkSize, float NoiseScale, floa
 
 	VoxelSizeHalf = VoxelSize / 2;
 
-	Worker = new FChunkMeshGenerator(ChunkLocation, ChunkSize, VoxelSize, NoiseWeight, NoiseScale, RandomSeed);
+	(new FAsyncTask<ChunkMeshTask>(this, ChunkLocation, ChunkSize, VoxelSize, NoiseWeight, NoiseScale, RandomSeed))->StartBackgroundTask();
 }
 
-bool AChunk::IsWorkerFinished()
+void AChunk::GenerateMesh(const TMap<EVoxelType, FChunkMesh*>& MeshData)
 {
-	if (Worker == nullptr)
-		return false;
-
-	return Worker->IsFinished();
+	ProceduralMeshComponent->ClearAllMeshSections();
+	for (auto & Pair : MeshData)
+	{
+		int32 SectionIndex = (int32)Pair.Key - 1;
+		FChunkMesh* ChunkMesh = Pair.Value;
+		ProceduralMeshComponent->CreateMeshSection(SectionIndex, ChunkMesh->Vertices, ChunkMesh->Triangles, ChunkMesh->Normals, ChunkMesh->UVs, ChunkMesh->VertexColors, ChunkMesh->Tangents, true);
+		ProceduralMeshComponent->SetMaterial(SectionIndex, VoxelMaterials[Pair.Key]);
+	}
 }

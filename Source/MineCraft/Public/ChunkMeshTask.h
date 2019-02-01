@@ -2,9 +2,12 @@
 
 #pragma once
 
+
 #include "Chunk.h"
-#include "ProceduralMeshComponent.h"
-#include "ChunkMeshGenerator.generated.h"
+#include "ChunkMeshTask.generated.h"
+
+
+struct FProcMeshTangent;
 
 USTRUCT()
 struct FChunkMesh
@@ -27,22 +30,18 @@ struct FChunkMesh
 	int32 NumTriangle;
 };
 
-class FChunkMeshGenerator : public FRunnable
+class MINECRAFT_API ChunkMeshTask : public FNonAbandonableTask
 {
 
-	/** Thread to run the worker FRunnable on */
-	FRunnableThread* Thread;
-
-	/** Stop this thread? Uses Thread Safe Counter */
-	FThreadSafeCounter StopTaskCounter;
-
-	bool bIsFinished;
-
 public:
+	ChunkMeshTask(AChunk* Owner, const FIntVector& ChunkLocation, const FIntVector& ChunkSize, const int32& VoxelSize, const float& NoiseWeight, const float& NoiseScale, const int32& RandomSeed);
+	~ChunkMeshTask();
+
 	UPROPERTY()
 	TArray<FVoxelFace> VoxelData;
 
 	TMap<EVoxelType, FChunkMesh*> MeshData;
+	AChunk* Owner;
 
 	FIntVector ChunkLocation;
 	FIntVector ChunkSize;
@@ -51,23 +50,13 @@ public:
 	float NoiseScale = 0;
 	int32 RandomSeed = 0;
 
-	//Done?
-	bool IsFinished() const;
-
-	//~~~ Thread Core Functions ~~~
-
-	//Constructor / Destructor
-	FChunkMeshGenerator(const FIntVector& ChunkLocation, const FIntVector& ChunkSize, const int32& VoxelSize, const float& NoiseWeight, const float& NoiseScale, const int32& RandomSeed);
-	virtual ~FChunkMeshGenerator();
-
-	// Begin FRunnable interface.
-	virtual bool Init() override;
-	virtual uint32 Run() override;
-	virtual void Stop() override;
-	// End FRunnable interface
+public:
+	FORCEINLINE TStatId GetStatId() const;
+	void DoWork();
 
 	FVoxelFace GetVoxelFace(int32 X, int32 Y, int32 Z, EFaceDirection Side);
 	void GenerateChunk();
 	void UpdateMesh();
 	void UpdateQuad(FVector BottomLeft, FVector TopLeft, FVector TopRight, FVector BottomRight, int32 Width, int32 Height, FVoxelFace VoxelFace, bool BackFace);
+
 };

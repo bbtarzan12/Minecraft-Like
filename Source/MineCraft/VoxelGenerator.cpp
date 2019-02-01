@@ -20,7 +20,7 @@ void UVoxelGenerator::BeginPlay()
 {
 	Super::BeginPlay();
 
-	GetWorld()->GetTimerManager().SetTimer(ChunkTimerHandle, this, &UVoxelGenerator::ProcessChunkQueue, 0.03f, true);
+	GetWorld()->GetTimerManager().SetTimer(ChunkTimerHandle, this, &UVoxelGenerator::ProcessChunkQueue, 0.01f, true);
 }
 
 
@@ -56,16 +56,13 @@ void UVoxelGenerator::ProcessChunkQueue()
 	if (ChunkQueue.IsEmpty())
 		return;
 
-	if (CurrentChunk != nullptr && !CurrentChunk->IsWorkerFinished())
-		return;
-
 	const FRotator ChunkRotation = FRotator::ZeroRotator;
 
 	FVector ChunkLocation;
 	ChunkQueue.Dequeue(ChunkLocation);
 
-	CurrentChunk = GetWorld()->SpawnActor<AChunk>(FVector(ChunkLocation), ChunkRotation);
-	CurrentChunk->Init(RandomSeed, ChunkSize, NoiseScale, NoiseWeight, VoxelSize);
+	AChunk* Chunk = GetWorld()->SpawnActor<AChunk>(FVector(ChunkLocation), ChunkRotation);
+	Chunk->Init(RandomSeed, ChunkSize, NoiseScale, NoiseWeight, VoxelSize);
 }
 
 // Called every frame

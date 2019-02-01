@@ -7,7 +7,8 @@
 #include "ProceduralMeshComponent.h"
 #include "Chunk.generated.h"
 
-class FChunkMeshGenerator;
+class ChunkMeshTask;
+struct FChunkMesh;
 
 UENUM()
 enum class EFaceDirection : uint8
@@ -71,16 +72,7 @@ public:
 	UPROPERTY()
 	TArray <FVoxelFace> ChunkField;
 
-	TArray<FVector> Vertices;
-	TArray<int32> Triangles;
-	TArray<FVector> Normals;
-	TArray<FVector2D> UVs;
-	TArray<FProcMeshTangent> Tangents;
-	TArray<FColor> VertexColors;
-
 private:
-	FChunkMeshGenerator* Worker;
-
 	static TMap<EVoxelType, UMaterialInstanceDynamic*> VoxelMaterials;
 
 public:
@@ -90,10 +82,9 @@ public:
 protected:
 	// Called when the game starts or when spawned
 	virtual void OnConstruction(const FTransform& Transform) override;
-	virtual void Tick(float DeltaTime) override;
 
 public:
 
 	void Init(int32 RandomSeed, FIntVector ChunkSize, float NoiseScale, float NoiseWeight, int32 VoxelSize);
-	bool IsWorkerFinished();
+	void GenerateMesh(const TMap<EVoxelType, FChunkMesh*>& MeshData);
 };
