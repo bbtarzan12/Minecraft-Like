@@ -11,6 +11,8 @@
 #include "Kismet/GameplayStatics.h"
 #include "MotionControllerComponent.h"
 #include "XRMotionControllerBase.h" // for FXRMotionControllerBase::RightHandSourceId
+#include "DrawDebugHelpers.h"
+#include "Chunk.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogFPChar, Warning, All);
 
@@ -118,7 +120,8 @@ void AMineCraftCharacter::SetupPlayerInputComponent(class UInputComponent* Playe
 	PlayerInputComponent->BindAction("Jump", IE_Released, this, &ACharacter::StopJumping);
 
 	// Bind fire event
-	PlayerInputComponent->BindAction("Fire", IE_Pressed, this, &AMineCraftCharacter::OnFire);
+	PlayerInputComponent->BindAction("Mouse Left", IE_Pressed, this, &AMineCraftCharacter::PlaceVoxel);
+	PlayerInputComponent->BindAction("Mouse Right", IE_Pressed, this, &AMineCraftCharacter::DeleteVoxel);
 
 	// Enable touchscreen input
 	EnableTouchscreenMovement(PlayerInputComponent);
@@ -138,53 +141,104 @@ void AMineCraftCharacter::SetupPlayerInputComponent(class UInputComponent* Playe
 	PlayerInputComponent->BindAxis("LookUpRate", this, &AMineCraftCharacter::LookUpAtRate);
 }
 
-void AMineCraftCharacter::OnFire()
+void AMineCraftCharacter::PlaceVoxel()
 {
-	// try and fire a projectile
-	if (ProjectileClass != NULL)
+	FHitResult HitCall(ForceInit);
+	FCollisionQueryParams ParamsCall = FCollisionQueryParams(FName(TEXT("TraceFire")), false, this);
+
+	const FVector TraceLocation = FirstPersonCameraComponent->GetComponentLocation();
+	const FVector TraceForward = FirstPersonCameraComponent->GetForwardVector();
+
+	FVector Start = TraceLocation;
+	FVector End = TraceLocation + TraceForward * 1000.0f;
+
+	DrawDebugLine(GetWorld(), Start, End, FColor::Green, false, 1, 0, 1);
+
+	bool Traced = GetWorld()->LineTraceSingleByChannel(HitCall, Start, End, ECC_Visibility, ParamsCall);
+
+	if (Traced)
 	{
-		UWorld* const World = GetWorld();
-		if (World != NULL)
+		if (HitCall.bBlockingHit)
 		{
-			if (bUsingMotionControllers)
-			{
-				const FRotator SpawnRotation = VR_MuzzleLocation->GetComponentRotation();
-				const FVector SpawnLocation = VR_MuzzleLocation->GetComponentLocation();
-				World->SpawnActor<AMineCraftProjectile>(ProjectileClass, SpawnLocation, SpawnRotation);
-			}
-			else
-			{
-				const FRotator SpawnRotation = GetControlRotation();
-				// MuzzleOffset is in camera space, so transform it to world space before offsetting from the character location to find the final muzzle position
-				const FVector SpawnLocation = ((FP_MuzzleLocation != nullptr) ? FP_MuzzleLocation->GetComponentLocation() : GetActorLocation()) + SpawnRotation.RotateVector(GunOffset);
-
-				//Set Spawn Collision Handling Override
-				FActorSpawnParameters ActorSpawnParams;
-				ActorSpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding;
-
-				// spawn the projectile at the muzzle
-				World->SpawnActor<AMineCraftProjectile>(ProjectileClass, SpawnLocation, SpawnRotation, ActorSpawnParams);
-			}
-		}
-	}
-
-	// try and play the sound if specified
-	if (FireSound != NULL)
-	{
-		UGameplayStatics::PlaySoundAtLocation(this, FireSound, GetActorLocation());
-	}
-
-	// try and play a firing animation if specified
-	if (FireAnimation != NULL)
-	{
-		// Get the animation object for the arms mesh
-		UAnimInstance* AnimInstance = Mesh1P->GetAnimInstance();
-		if (AnimInstance != NULL)
-		{
-			AnimInstance->Montage_Play(FireAnimation, 1.f);
+			AChunk* Chunk = Cast<AChunk>(HitCall.GetActor());
+			Chunk->SetVoxel(HitCall.ImpactPoint, HitCall.ImpactNormal, EVoxelType::DIRT);
 		}
 	}
 }
+
+void AMineCraftCharacter::DeleteVoxel()
+{
+	FHitResult HitCall(ForceInit);
+	FCollisionQueryParams ParamsCall = FCollisionQueryParams(FName(TEXT("TraceFire")), false, this);
+	
+	const FVector TraceLocation = FirstPersonCameraComponent->GetComponentLocation();
+	const FVector TraceForward = FirstPersonCameraComponent->GetForwardVector();
+
+	FVector Start = TraceLocation;
+	FVector End = TraceLocation + TraceForward * 1000.0f;
+
+	DrawDebugLine(GetWorld(), Start, End, FColor::Green, false, 1, 0, 1);
+
+	bool Traced = GetWorld()->LineTraceSingleByChannel(HitCall, Start, End, ECC_Visibility, ParamsCall);
+
+	if (Traced)
+	{
+		if (HitCall.bBlockingHit)
+		{
+			AChunk* Chunk = Cast<AChunk>(HitCall.GetActor());
+			Chunk->DeleteVoxel(HitCall.ImpactPoint, TraceForward);
+		}
+	}
+
+}
+
+//void AMineCraftCharacter::OnFire()
+//{
+//	// try and fire a projectile
+//	if (ProjectileClass != NULL)
+//	{
+//		UWorld* const World = GetWorld();
+//		if (World != NULL)
+//		{
+//			if (bUsingMotionControllers)
+//			{
+//				const FRotator SpawnRotation = VR_MuzzleLocation->GetComponentRotation();
+//				const FVector SpawnLocation = VR_MuzzleLocation->GetComponentLocation();
+//				World->SpawnActor<AMineCraftProjectile>(ProjectileClass, SpawnLocation, SpawnRotation);
+//			}
+//			else
+//			{
+//				const FRotator SpawnRotation = GetControlRotation();
+//				// MuzzleOffset is in camera space, so transform it to world space before offsetting from the character location to find the final muzzle position
+//				const FVector SpawnLocation = ((FP_MuzzleLocation != nullptr) ? FP_MuzzleLocation->GetComponentLocation() : GetActorLocation()) + SpawnRotation.RotateVector(GunOffset);
+//
+//				//Set Spawn Collision Handling Override
+//				FActorSpawnParameters ActorSpawnParams;
+//				ActorSpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding;
+//
+//				// spawn the projectile at the muzzle
+//				World->SpawnActor<AMineCraftProjectile>(ProjectileClass, SpawnLocation, SpawnRotation, ActorSpawnParams);
+//			}
+//		}
+//	}
+//
+//	// try and play the sound if specified
+//	if (FireSound != NULL)
+//	{
+//		UGameplayStatics::PlaySoundAtLocation(this, FireSound, GetActorLocation());
+//	}
+//
+//	// try and play a firing animation if specified
+//	if (FireAnimation != NULL)
+//	{
+//		// Get the animation object for the arms mesh
+//		UAnimInstance* AnimInstance = Mesh1P->GetAnimInstance();
+//		if (AnimInstance != NULL)
+//		{
+//			AnimInstance->Montage_Play(FireAnimation, 1.f);
+//		}
+//	}
+//}
 
 void AMineCraftCharacter::OnResetVR()
 {
@@ -199,7 +253,7 @@ void AMineCraftCharacter::BeginTouch(const ETouchIndex::Type FingerIndex, const 
 	}
 	if ((FingerIndex == TouchItem.FingerIndex) && (TouchItem.bMoved == false))
 	{
-		OnFire();
+		DeleteVoxel();
 	}
 	TouchItem.bIsPressed = true;
 	TouchItem.FingerIndex = FingerIndex;

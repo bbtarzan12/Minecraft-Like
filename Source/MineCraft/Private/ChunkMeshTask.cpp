@@ -40,6 +40,15 @@ ChunkMeshTask::ChunkMeshTask(AChunk* Owner, const FIntVector& ChunkLocation, con
 	this->ChunkSize = ChunkSize;
 	this->VoxelSize = VoxelSize;
 	this->Owner = Owner;
+	bIsFirstTime = true;
+}
+
+ChunkMeshTask::ChunkMeshTask(AChunk* Owner, const FIntVector& ChunkSize, const int32& VoxelSize, const TArray<FVoxelFace>& VoxelData, const int32& Index, const EVoxelType& VoxelType)
+	: Owner(Owner), ChunkSize(ChunkSize), VoxelSize(VoxelSize), VoxelData(VoxelData)
+{
+	VoxelEditIndex = Index;
+	VoxelEditType = VoxelType;
+	bIsFirstTime = false;
 }
 
 ChunkMeshTask::~ChunkMeshTask()
@@ -53,10 +62,20 @@ FORCEINLINE TStatId ChunkMeshTask::GetStatId() const
 
 void ChunkMeshTask::DoWork()
 {
-	GenerateChunk();
+	if (bIsFirstTime)
+	{
+		GenerateChunk();
+	}
+	else
+	{
+		VoxelData[VoxelEditIndex].Type = VoxelEditType;
+		VoxelData[VoxelEditIndex].IsValid = true;
+	}
 	UpdateMesh();
+
 	AsyncTask(ENamedThreads::GameThread, [&]()
 	{
+		Owner->SetVoxelData(VoxelData);
 		Owner->GenerateMesh(MeshData);
 	});
 }
@@ -210,7 +229,7 @@ void ChunkMeshTask::UpdateMesh()
 					for (i = 0; i < ChunkSize.X;)
 					{
 
-						if (Mask[n].IsValid)
+						if (Mask[n].IsValid && Mask[n].Type != EVoxelType::NONE)
 						{
 
 							/*

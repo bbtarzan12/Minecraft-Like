@@ -6,6 +6,7 @@
 #include "DrawDebugHelpers.h"
 #include "Async/ParallelFor.h"
 #include "Public/ChunkMeshTask.h"
+#include "Public/VoxelUtil.h"
 
 TMap<EVoxelType, UMaterialInstanceDynamic*> AChunk::VoxelMaterials;
 
@@ -43,6 +44,17 @@ AChunk::AChunk()
 	}
 }
 
+void AChunk::StartTask()
+{
+	(new FAsyncTask<ChunkMeshTask>(this, ChunkLocation, ChunkSize, VoxelSize, NoiseWeight, NoiseScale, RandomSeed))->StartBackgroundTask();
+}
+
+
+void AChunk::StartTask(int32 Index, EVoxelType VoxelType)
+{
+	(new FAsyncTask<ChunkMeshTask>(this, ChunkSize, VoxelSize, VoxelData, Index, VoxelType))->StartSynchronousTask();
+}
+
 void AChunk::OnConstruction(const FTransform& Transform)
 {
 	Super::OnConstruction(Transform);
@@ -62,15 +74,14 @@ void AChunk::Init(int32 RandomSeed, FIntVector ChunkSize, float NoiseScale, floa
 	this->NoiseWeight = NoiseWeight;
 	this->VoxelSize = VoxelSize;
 
-	FVector Location = GetActorLocation();
+	Location = GetActorLocation();
 	ChunkLocation = FIntVector(Location);
 	ChunkLocation.X /= (ChunkSize.X * VoxelSize);
 	ChunkLocation.Y /= (ChunkSize.Y * VoxelSize);
 	ChunkLocation.Z /= (ChunkSize.Z * VoxelSize);
 
 	VoxelSizeHalf = VoxelSize / 2;
-
-	(new FAsyncTask<ChunkMeshTask>(this, ChunkLocation, ChunkSize, VoxelSize, NoiseWeight, NoiseScale, RandomSeed))->StartBackgroundTask();
+	StartTask();
 }
 
 void AChunk::GenerateMesh(const TMap<EVoxelType, FChunkMesh*>& MeshData)
@@ -83,4 +94,32 @@ void AChunk::GenerateMesh(const TMap<EVoxelType, FChunkMesh*>& MeshData)
 		ProceduralMeshComponent->CreateMeshSection(SectionIndex, ChunkMesh->Vertices, ChunkMesh->Triangles, ChunkMesh->Normals, ChunkMesh->UVs, ChunkMesh->VertexColors, ChunkMesh->Tangents, true);
 		ProceduralMeshComponent->SetMaterial(SectionIndex, VoxelMaterials[Pair.Key]);
 	}
+	GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Red, FString::Printf(TEXT("Generate Chunk Mesh: %s"), *GetFName().ToString()));
+}
+
+void AChunk::SetVoxelData(const TArray<FVoxelFace>& VoxelData)
+{
+	this->VoxelData = VoxelData;
+}
+
+void AChunk::SetVoxel(const FVector& GlobalLocation, const EVoxelType& VoxelType)
+{
+	FIntVector LocalLocation = VoxelUtil::ConvertGlobalToLocal(GlobalLocation, Location, VoxelSize);
+	int32 Index = VoxelUtil::Convert3Dto1DIndex(LocalLocation, ChunkSize);
+
+	GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Red, FString::Printf(TEXT("Global Location: %s"), *GlobalLocation.ToString()));
+	GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Red, FString::Printf(TEXT("Local Location: %s"), *LocalLocation.ToString()));
+	GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Red, FString::Printf(TEXT("Index: %d"), Index));
+
+	StartTask(Index, VoxelType);
+}
+
+void AChunk::SetVoxel(const FVector & GlobalLocation, const FVector& Normal, const EVoxelType & VoxelType)
+{
+	SetVoxel(GlobalLocation + Normal * 0.01f, VoxelType);
+}
+
+void AChunk::DeleteVoxel(const FVector& GlobalLocation, const FVector& Forward)
+{
+	SetVoxel(GlobalLocation + Forward * 0.01f, EVoxelType::NONE);
 }

@@ -20,7 +20,7 @@ void UVoxelGenerator::BeginPlay()
 {
 	Super::BeginPlay();
 
-	GetWorld()->GetTimerManager().SetTimer(ChunkTimerHandle, this, &UVoxelGenerator::ProcessChunkQueue, 0.01f, true);
+	//GetWorld()->GetTimerManager().SetTimer(ChunkTimerHandle, this, &UVoxelGenerator::ProcessChunkQueue, 0.01f, true);
 }
 
 
@@ -69,6 +69,7 @@ void UVoxelGenerator::ProcessChunkQueue()
 void UVoxelGenerator::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+	ProcessChunkQueue();
 
 	FVector ActorLoaction = GetOwner()->GetActorLocation();
 	ActorChunkLocation.X = FMath::FloorToInt(ActorLoaction.X / VoxelSize / ChunkSize.X);

@@ -51,3 +51,13 @@ FIntVector VoxelUtil::GetNeighborIndex(int32 Index, int32 Direction, FIntVector 
 	FIntVector Coord = Convert1Dto3DIndex(Index, Size);
 	return GetNeighborIndex(Coord, Direction);
 }
+
+FIntVector VoxelUtil::ConvertGlobalToLocal(FVector GlobalLocation, FVector ChunkLocation, int32 Size)
+{
+	FIntVector LocalChunkLocation = FIntVector(GlobalLocation - ChunkLocation);
+	LocalChunkLocation.X /= Size;
+	LocalChunkLocation.Y /= Size;
+	LocalChunkLocation.Z /= Size;
+
+	return LocalChunkLocation;
+}
