@@ -102,14 +102,19 @@ void FChunkMeshGenerator::GenerateChunk()
 				float NoiseValue = USimplexNoiseBPLibrary::SimplexNoiseScaled2D(ScaledNoiseOffset.X, ScaledNoiseOffset.Y, NoiseWeight);
 				
 				FVoxelFace VoxelFace = FVoxelFace();
-				if (NoiseValue + 3 > CurrentChunkLocation.Z)
+				if (NoiseValue + 10 > CurrentChunkLocation.Z)
 				{
 					VoxelFace.Type = EVoxelType::GRASS;
 					VoxelFace.IsValid = true;
 				}
-				if (NoiseValue + 2 > CurrentChunkLocation.Z)
+				if (NoiseValue + 9 > CurrentChunkLocation.Z)
 				{
 					VoxelFace.Type = EVoxelType::DIRT;
+					VoxelFace.IsValid = true;
+				}
+				if (NoiseValue + 8 > CurrentChunkLocation.Z)
+				{
+					VoxelFace.Type = EVoxelType::COBBLESTONE;
 					VoxelFace.IsValid = true;
 				}
 				VoxelData[Index] = VoxelFace;
@@ -299,82 +304,93 @@ void FChunkMeshGenerator::UpdateMesh()
 
 void FChunkMeshGenerator::UpdateQuad(FVector BottomLeft, FVector TopLeft, FVector TopRight, FVector BottomRight, int32 Width, int32 Height, FVoxelFace VoxelFace, bool BackFace)
 {
-	Vertices.Add(BottomLeft * VoxelSize);
-	Vertices.Add(BottomRight * VoxelSize);
-	Vertices.Add(TopLeft * VoxelSize);
-	Vertices.Add(TopRight * VoxelSize);
+	FChunkMesh* ChunkMesh;
+	if (MeshData.Contains(VoxelFace.Type))
+	{
+		ChunkMesh = MeshData[VoxelFace.Type];
+	}
+	else
+	{
+		ChunkMesh = new FChunkMesh();
+		MeshData.Add(VoxelFace.Type, ChunkMesh);
+	}
 
-	Triangles.Add((BackFace ? bBackTriangles : bFrontTriangles)[0] + NumTriangle);
-	Triangles.Add((BackFace ? bBackTriangles : bFrontTriangles)[1] + NumTriangle);
-	Triangles.Add((BackFace ? bBackTriangles : bFrontTriangles)[2] + NumTriangle);
-	Triangles.Add((BackFace ? bBackTriangles : bFrontTriangles)[3] + NumTriangle);
-	Triangles.Add((BackFace ? bBackTriangles : bFrontTriangles)[4] + NumTriangle);
-	Triangles.Add((BackFace ? bBackTriangles : bFrontTriangles)[5] + NumTriangle);
-	NumTriangle += 4;
+
+	ChunkMesh->Vertices.Add(BottomLeft * VoxelSize);
+	ChunkMesh->Vertices.Add(BottomRight * VoxelSize);
+	ChunkMesh->Vertices.Add(TopLeft * VoxelSize);
+	ChunkMesh->Vertices.Add(TopRight * VoxelSize);
+
+	ChunkMesh->Triangles.Add((BackFace ? bBackTriangles : bFrontTriangles)[0] + ChunkMesh->NumTriangle);
+	ChunkMesh->Triangles.Add((BackFace ? bBackTriangles : bFrontTriangles)[1] + ChunkMesh->NumTriangle);
+	ChunkMesh->Triangles.Add((BackFace ? bBackTriangles : bFrontTriangles)[2] + ChunkMesh->NumTriangle);
+	ChunkMesh->Triangles.Add((BackFace ? bBackTriangles : bFrontTriangles)[3] + ChunkMesh->NumTriangle);
+	ChunkMesh->Triangles.Add((BackFace ? bBackTriangles : bFrontTriangles)[4] + ChunkMesh->NumTriangle);
+	ChunkMesh->Triangles.Add((BackFace ? bBackTriangles : bFrontTriangles)[5] + ChunkMesh->NumTriangle);
+	ChunkMesh->NumTriangle += 4;
 
 	FColor Color = GetQuinaryColor((int32)VoxelFace.Type);
-	UE_LOG(LogChunk, Log, TEXT("%d -> %d %d %d %d"), (int32)VoxelFace.Type, Color.R, Color.G, Color.B, Color.A);
-	VertexColors.Add(Color);
-	VertexColors.Add(Color);
-	VertexColors.Add(Color);
-	VertexColors.Add(Color);
+	ChunkMesh->VertexColors.Add(Color);
+	ChunkMesh->VertexColors.Add(Color);
+	ChunkMesh->VertexColors.Add(Color);
+	ChunkMesh->VertexColors.Add(Color);
 
 	switch (VoxelFace.Side)
 	{
 		case EFaceDirection::FRONT:
 		{
-			UVs.Add(FVector2D(Width, Height));
-			UVs.Add(FVector2D(Width, 0));
-			UVs.Add(FVector2D(0, Height));
-			UVs.Add(FVector2D(0, 0));
+			ChunkMesh->UVs.Add(FVector2D(Width, Height));
+			ChunkMesh->UVs.Add(FVector2D(Width, 0));
+			ChunkMesh->UVs.Add(FVector2D(0, Height));
+			ChunkMesh->UVs.Add(FVector2D(0, 0));
 			break;
 		}
 		case EFaceDirection::BACK:
 		{
-			UVs.Add(FVector2D(0, Height));
-			UVs.Add(FVector2D(0, 0));
-			UVs.Add(FVector2D(Width, Height));
-			UVs.Add(FVector2D(Width, 0));
+			ChunkMesh->UVs.Add(FVector2D(0, Height));
+			ChunkMesh->UVs.Add(FVector2D(0, 0));
+			ChunkMesh->UVs.Add(FVector2D(Width, Height));
+			ChunkMesh->UVs.Add(FVector2D(Width, 0));
 			break;
 		}
 		case EFaceDirection::RIGHT:
 		{
-			UVs.Add(FVector2D(0, Width));
-			UVs.Add(FVector2D(Height, Width));
-			UVs.Add(FVector2D(0, 0));
-			UVs.Add(FVector2D(Height, 0));
+			ChunkMesh->UVs.Add(FVector2D(0, Width));
+			ChunkMesh->UVs.Add(FVector2D(Height, Width));
+			ChunkMesh->UVs.Add(FVector2D(0, 0));
+			ChunkMesh->UVs.Add(FVector2D(Height, 0));
 			break;
 		}
 		case EFaceDirection::LEFT:
 		{
-			UVs.Add(FVector2D(Height, Width));
-			UVs.Add(FVector2D(0, Width));
-			UVs.Add(FVector2D(Height, 0));
-			UVs.Add(FVector2D(0, 0));
+			ChunkMesh->UVs.Add(FVector2D(Height, Width));
+			ChunkMesh->UVs.Add(FVector2D(0, Width));
+			ChunkMesh->UVs.Add(FVector2D(Height, 0));
+			ChunkMesh->UVs.Add(FVector2D(0, 0));
 			break;
 		}
 		case EFaceDirection::TOP:
 		{
-			UVs.Add(FVector2D(0, 0));
-			UVs.Add(FVector2D(0, Height));
-			UVs.Add(FVector2D(Width, 0));
-			UVs.Add(FVector2D(Width, Height));
+			ChunkMesh->UVs.Add(FVector2D(0, 0));
+			ChunkMesh->UVs.Add(FVector2D(0, Height));
+			ChunkMesh->UVs.Add(FVector2D(Width, 0));
+			ChunkMesh->UVs.Add(FVector2D(Width, Height));
 			break;
 		}
 		case EFaceDirection::BOTTOM:
 		{
-			UVs.Add(FVector2D(Width, 0));
-			UVs.Add(FVector2D(Width, Height));
-			UVs.Add(FVector2D(0, 0));
-			UVs.Add(FVector2D(0, Height));
+			ChunkMesh->UVs.Add(FVector2D(Width, 0));
+			ChunkMesh->UVs.Add(FVector2D(Width, Height));
+			ChunkMesh->UVs.Add(FVector2D(0, 0));
+			ChunkMesh->UVs.Add(FVector2D(0, Height));
 			break;
 		}
 		default:
 			break;
 	}
 
-	Normals.Append(bNormals[(int32)VoxelFace.Side], ARRAY_COUNT(bNormals[(int32)VoxelFace.Side]));
-	Tangents.Append(bTangents[(int32)VoxelFace.Side], ARRAY_COUNT(bTangents[(int32)VoxelFace.Side]));
+	ChunkMesh->Normals.Append(bNormals[(int32)VoxelFace.Side], ARRAY_COUNT(bNormals[(int32)VoxelFace.Side]));
+	ChunkMesh->Tangents.Append(bTangents[(int32)VoxelFace.Side], ARRAY_COUNT(bTangents[(int32)VoxelFace.Side]));
 }
 
 FColor FChunkMeshGenerator::GetQuinaryColor(int32 Number)

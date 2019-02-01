@@ -4,6 +4,28 @@
 
 #include "Chunk.h"
 #include "ProceduralMeshComponent.h"
+#include "ChunkMeshGenerator.generated.h"
+
+USTRUCT()
+struct FChunkMesh
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+	TArray<FVector> Vertices;
+	UPROPERTY()
+	TArray<int32> Triangles;
+	UPROPERTY()
+	TArray<FVector> Normals;
+	UPROPERTY()
+	TArray<FVector2D> UVs;
+	UPROPERTY()
+	TArray<FProcMeshTangent> Tangents;
+	UPROPERTY()
+	TArray<FColor> VertexColors;
+	UPROPERTY()
+	int32 NumTriangle;
+};
 
 class FChunkMeshGenerator : public FRunnable
 {
@@ -19,22 +41,11 @@ class FChunkMeshGenerator : public FRunnable
 public:
 	UPROPERTY()
 	TArray<FVoxelFace> VoxelData;
-	UPROPERTY()
-	TArray<FVector> Vertices;
-	UPROPERTY()
-	TArray<int32> Triangles;
-	UPROPERTY()
-	TArray<FVector> Normals;
-	UPROPERTY()
-	TArray<FVector2D> UVs;
-	UPROPERTY()
-	TArray<FProcMeshTangent> Tangents;
-	UPROPERTY()
-	TArray<FColor> VertexColors;
+
+	TMap<EVoxelType, FChunkMesh*> MeshData;
 
 	FIntVector ChunkLocation;
 	FIntVector ChunkSize;
-	int32 NumTriangle = 0;
 	int32 VoxelSize = 0;
 	float NoiseWeight = 0;
 	float NoiseScale = 0;
