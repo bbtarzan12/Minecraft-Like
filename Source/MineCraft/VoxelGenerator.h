@@ -6,6 +6,7 @@
 #include "Components/ActorComponent.h"
 #include "VoxelGenerator.generated.h"
 
+class AChunk;
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class MINECRAFT_API UVoxelGenerator : public UActorComponent
@@ -41,6 +42,8 @@ private:
 	FIntVector ActorChunkLocation = FIntVector::ZeroValue;
 	FTimerHandle ChunkTimerHandle;
 	TQueue<FVector> ChunkQueue;
+
+	AChunk* CurrentChunk;
 
 	void GenerateChunks();
 	void ProcessChunkQueue();

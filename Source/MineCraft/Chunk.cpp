@@ -7,7 +7,7 @@
 #include "ChunkMeshGenerator.h"
 #include "Async/ParallelFor.h"
 
-TArray<UMaterialInstanceDynamic*> AChunk::VoxelMaterials;
+TMap<EVoxelType, UMaterialInstanceDynamic*> AChunk::VoxelMaterials;
 
 // Sets default values
 AChunk::AChunk()
@@ -20,7 +20,7 @@ AChunk::AChunk()
 		const UEnum* VoxelTypePtr = FindObject<UEnum>(ANY_PACKAGE, TEXT("EVoxelType"), true);
 		if (VoxelTypePtr != nullptr)
 		{
-			for (int i = 0; i < VoxelTypePtr->NumEnums() - 1; i++)
+			for (int i = 1; i < VoxelTypePtr->NumEnums() - 1; i++)
 			{
 				EVoxelType VoxelType = (EVoxelType) (VoxelTypePtr->GetValueByIndex(i));
 				FName VoxelEnumName = VoxelTypePtr->GetNameByIndex(i);
@@ -36,7 +36,7 @@ AChunk::AChunk()
 				if (FoundMaterial.Succeeded())
 				{
 					UE_LOG(LogChunk, Log, TEXT("Load Voxel Material : %s"), *FoundMaterial.Object->GetFName().ToString());
-					VoxelMaterials.Add((UMaterialInstanceDynamic*) FoundMaterial.Object);
+					VoxelMaterials.Add(VoxelType, (UMaterialInstanceDynamic*) FoundMaterial.Object);
 				}
 			}
 		}
@@ -66,10 +66,10 @@ void AChunk::Tick(float DeltaTime)
 	ProceduralMeshComponent->ClearAllMeshSections();
 	for (auto & Pair : Worker->MeshData)
 	{
-		int32 SectionIndex = (int32)Pair.Key;
+		int32 SectionIndex = (int32) Pair.Key - 1;
 		FChunkMesh* ChunkMesh = Pair.Value;
 		ProceduralMeshComponent->CreateMeshSection(SectionIndex, ChunkMesh->Vertices, ChunkMesh->Triangles, ChunkMesh->Normals, ChunkMesh->UVs, ChunkMesh->VertexColors, ChunkMesh->Tangents, true);
-		ProceduralMeshComponent->SetMaterial(SectionIndex, VoxelMaterials[SectionIndex]);
+		ProceduralMeshComponent->SetMaterial(SectionIndex, VoxelMaterials[Pair.Key]);
 	}
 
 	SetActorTickEnabled(false);
@@ -93,4 +93,12 @@ void AChunk::Init(int32 RandomSeed, FIntVector ChunkSize, float NoiseScale, floa
 	VoxelSizeHalf = VoxelSize / 2;
 
 	Worker = new FChunkMeshGenerator(ChunkLocation, ChunkSize, VoxelSize, NoiseWeight, NoiseScale, RandomSeed);
+}
+
+bool AChunk::IsWorkerFinished()
+{
+	if (Worker == nullptr)
+		return false;
+
+	return Worker->IsFinished();
 }

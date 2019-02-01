@@ -56,13 +56,16 @@ void UVoxelGenerator::ProcessChunkQueue()
 	if (ChunkQueue.IsEmpty())
 		return;
 
+	if (CurrentChunk != nullptr && !CurrentChunk->IsWorkerFinished())
+		return;
+
 	const FRotator ChunkRotation = FRotator::ZeroRotator;
 
 	FVector ChunkLocation;
 	ChunkQueue.Dequeue(ChunkLocation);
 
-	AChunk* Chunk = GetWorld()->SpawnActor<AChunk>(FVector(ChunkLocation), ChunkRotation);
-	Chunk->Init(RandomSeed, ChunkSize, NoiseScale, NoiseWeight, VoxelSize);
+	CurrentChunk = GetWorld()->SpawnActor<AChunk>(FVector(ChunkLocation), ChunkRotation);
+	CurrentChunk->Init(RandomSeed, ChunkSize, NoiseScale, NoiseWeight, VoxelSize);
 }
 
 // Called every frame

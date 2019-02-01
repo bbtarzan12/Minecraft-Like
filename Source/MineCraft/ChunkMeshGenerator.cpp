@@ -3,6 +3,7 @@
 #include "MineCraft.h"
 #include "SimplexNoiseBPLibrary.h"
 #include "ProceduralMeshComponent.h"
+#include "Public/VoxelUtil.h"
 
 const int32 bBackTriangles[] = { 2,3,1, 1,0,2 };
 const int32 bFrontTriangles[] = { 2,0,1, 1,3,2 };
@@ -72,8 +73,19 @@ void FChunkMeshGenerator::Stop()
 
 FVoxelFace FChunkMeshGenerator::GetVoxelFace(int32 X, int32 Y, int32 Z, EFaceDirection Side)
 {
-	int32 Index = X + (Y * ChunkSize.X) + (Z * ChunkSize.X * ChunkSize.Y);
+	int32 Index = VoxelUtil::Convert3Dto1DIndex(X, Y, Z, ChunkSize);
 	VoxelData[Index].Side = Side;
+	VoxelData[Index].Transparent = false;
+	FIntVector OppositeCoord = VoxelUtil::GetNeighborIndex(X, Y, Z, (int32) Side);
+	int32 NeighborIndex = VoxelUtil::Convert3Dto1DIndex(OppositeCoord, ChunkSize);
+	if (VoxelUtil::BoundaryCheck3D(OppositeCoord, ChunkSize))
+	{
+		if (VoxelData[NeighborIndex].Type != EVoxelType::NONE)
+		{
+			VoxelData[Index].Transparent = true;
+		}
+	}
+	
 	return VoxelData[Index];
 }
 
@@ -88,7 +100,7 @@ void FChunkMeshGenerator::GenerateChunk()
 		{
 			for (int32 Z = 0; Z < ChunkSize.Z; Z++)
 			{
-				int32 Index = X + (Y * ChunkSize.X) + (Z * ChunkSize.X * ChunkSize.Y);
+				int32 Index = VoxelUtil::Convert3Dto1DIndex(X, Y, Z, ChunkSize);
 
 				FIntVector CurrentChunkLocation;
 				CurrentChunkLocation.X = ChunkLocation.X * ChunkSize.X + X;
@@ -120,7 +132,6 @@ void FChunkMeshGenerator::GenerateChunk()
 				VoxelData[Index] = VoxelFace;
 			}
 		}
-		FPlatformProcess::Sleep(0.01);
 	}
 }
 
@@ -297,7 +308,7 @@ void FChunkMeshGenerator::UpdateMesh()
 					}
 				}
 			}
-			FPlatformProcess::Sleep(0.01);
+			//FPlatformProcess::Sleep(0.01);
 		}
 	}
 }
@@ -329,7 +340,7 @@ void FChunkMeshGenerator::UpdateQuad(FVector BottomLeft, FVector TopLeft, FVecto
 	ChunkMesh->Triangles.Add((BackFace ? bBackTriangles : bFrontTriangles)[5] + ChunkMesh->NumTriangle);
 	ChunkMesh->NumTriangle += 4;
 
-	FColor Color = GetQuinaryColor((int32)VoxelFace.Type);
+	FColor Color = FColor::White;
 	ChunkMesh->VertexColors.Add(Color);
 	ChunkMesh->VertexColors.Add(Color);
 	ChunkMesh->VertexColors.Add(Color);
@@ -391,47 +402,4 @@ void FChunkMeshGenerator::UpdateQuad(FVector BottomLeft, FVector TopLeft, FVecto
 
 	ChunkMesh->Normals.Append(bNormals[(int32)VoxelFace.Side], ARRAY_COUNT(bNormals[(int32)VoxelFace.Side]));
 	ChunkMesh->Tangents.Append(bTangents[(int32)VoxelFace.Side], ARRAY_COUNT(bTangents[(int32)VoxelFace.Side]));
-}
-
-FColor FChunkMeshGenerator::GetQuinaryColor(int32 Number)
-{
-	FColor Color = FColor(0, 0, 0, 0);
-	const int32 Quater = FColor::Red.R / 4;
-
-	int32 Quotient = Number / 4;
-	int32 Remainder = Number % 4;
-	Number = Remainder;
-	Color.A = Number * Quater;
-
-	if (Quotient == 0)
-	{
-		return Color;
-	}
-
-	Quotient = Number / 4;
-	Remainder = Number % 4;
-	Number = Remainder;
-	Color.B = Number * Quater;
-
-	if (Quotient == 0)
-	{
-		return Color;
-	}
-
-	Quotient = Number / 4;
-	Remainder = Number % 4;
-	Number = Remainder;
-	Color.G = Number * Quater;
-
-	if (Quotient == 0)
-	{
-		return Color;
-	}
-
-	Quotient = Number / 4;
-	Remainder = Number % 4;
-	Number = Remainder;
-	Color.R = Number * Quater;
-
-	return Color;
 }

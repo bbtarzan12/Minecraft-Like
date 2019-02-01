@@ -18,7 +18,7 @@ enum class EFaceDirection : uint8
 UENUM()
 enum class EVoxelType : uint8
 {
-	GRASS, DIRT, COBBLESTONE
+	NONE, GRASS, DIRT, COBBLESTONE
 };
 
 USTRUCT()
@@ -81,7 +81,7 @@ public:
 private:
 	FChunkMeshGenerator* Worker;
 
-	static TArray<UMaterialInstanceDynamic*> VoxelMaterials;
+	static TMap<EVoxelType, UMaterialInstanceDynamic*> VoxelMaterials;
 
 public:
 	// Sets default values for this actor's properties
@@ -94,5 +94,6 @@ protected:
 
 public:
 
-	virtual void Init(int32 RandomSeed, FIntVector ChunkSize, float NoiseScale, float NoiseWeight, int32 VoxelSize);
+	void Init(int32 RandomSeed, FIntVector ChunkSize, float NoiseScale, float NoiseWeight, int32 VoxelSize);
+	bool IsWorkerFinished();
 };
