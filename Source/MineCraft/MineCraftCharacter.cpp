@@ -13,6 +13,7 @@
 #include "XRMotionControllerBase.h" // for FXRMotionControllerBase::RightHandSourceId
 #include "DrawDebugHelpers.h"
 #include "Chunk.h"
+#include "Public/MinecraftGameState.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogFPChar, Warning, All);
 
@@ -160,8 +161,9 @@ void AMineCraftCharacter::PlaceVoxel()
 	{
 		if (HitCall.bBlockingHit)
 		{
-			AChunk* Chunk = Cast<AChunk>(HitCall.GetActor());
-			Chunk->SetVoxel(HitCall.ImpactPoint, HitCall.ImpactNormal, EVoxelType::DIRT);
+			Cast<AMinecraftGameState>(GetWorld()->GetGameState())->SetVoxel(HitCall.ImpactPoint, HitCall.ImpactNormal, EVoxelType::DIRT);
+			//AChunk* Chunk = Cast<AChunk>(HitCall.GetActor());
+			//Chunk->SetVoxel(HitCall.ImpactPoint, HitCall.ImpactNormal, EVoxelType::DIRT);
 		}
 	}
 }
@@ -185,8 +187,7 @@ void AMineCraftCharacter::DeleteVoxel()
 	{
 		if (HitCall.bBlockingHit)
 		{
-			AChunk* Chunk = Cast<AChunk>(HitCall.GetActor());
-			Chunk->DeleteVoxel(HitCall.ImpactPoint, TraceForward);
+			Cast<AMinecraftGameState>(GetWorld()->GetGameState())->DeleteVoxel(HitCall.ImpactPoint, TraceForward);
 		}
 	}
 

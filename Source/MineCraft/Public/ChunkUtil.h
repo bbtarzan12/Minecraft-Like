@@ -21,5 +21,8 @@ public:
 	static FIntVector GetNeighborIndex(int32 X, int32 Y, int32 Z, int32 Direction);
 
 	static FIntVector ConvertGlobalToLocal(FVector GlobalLocation, FVector ChunkLocation, int32 Size);
+
+	static FVector ConvertOffsetToLocation(FIntVector Offset, FIntVector ChunkSize, int32 VoxelSize);
+	static FIntVector ConvertLocationToOffset(FVector Location, FIntVector ChunkSize, int32 VoxelSize);
 	
 };

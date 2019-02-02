@@ -91,10 +91,12 @@ void AChunk::GenerateMesh(const TMap<EVoxelType, FChunkMesh*>& MeshData)
 	{
 		int32 SectionIndex = (int32)Pair.Key - 1;
 		FChunkMesh* ChunkMesh = Pair.Value;
-		ProceduralMeshComponent->CreateMeshSection(SectionIndex, ChunkMesh->Vertices, ChunkMesh->Triangles, ChunkMesh->Normals, ChunkMesh->UVs, ChunkMesh->VertexColors, ChunkMesh->Tangents, true);
-		ProceduralMeshComponent->SetMaterial(SectionIndex, VoxelMaterials[Pair.Key]);
+		if (ChunkMesh)
+		{
+			ProceduralMeshComponent->CreateMeshSection(SectionIndex, ChunkMesh->Vertices, ChunkMesh->Triangles, ChunkMesh->Normals, ChunkMesh->UVs, ChunkMesh->VertexColors, ChunkMesh->Tangents, true);
+			ProceduralMeshComponent->SetMaterial(SectionIndex, VoxelMaterials[Pair.Key]);
+		}
 	}
-	GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Red, FString::Printf(TEXT("Generate Chunk Mesh: %s"), *GetFName().ToString()));
 }
 
 void AChunk::SetVoxelData(const TArray<FVoxelFace>& VoxelData)
@@ -112,14 +114,4 @@ void AChunk::SetVoxel(const FVector& GlobalLocation, const EVoxelType& VoxelType
 	GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Red, FString::Printf(TEXT("Index: %d"), Index));
 
 	StartTask(Index, VoxelType);
-}
-
-void AChunk::SetVoxel(const FVector & GlobalLocation, const FVector& Normal, const EVoxelType & VoxelType)
-{
-	SetVoxel(GlobalLocation + Normal * 0.01f, VoxelType);
-}
-
-void AChunk::DeleteVoxel(const FVector& GlobalLocation, const FVector& Forward)
-{
-	SetVoxel(GlobalLocation + Forward * 0.01f, EVoxelType::NONE);
 }

@@ -4,6 +4,7 @@
 #include "Chunk.h"
 #include "GameFramework/PlayerState.h"
 #include "Kismet/GameplayStatics.h"
+#include "Public/ChunkUtil.h"
 
 AMinecraftGameState::AMinecraftGameState() : Super()
 {
@@ -26,21 +27,15 @@ void AMinecraftGameState::SetChunkToLoad(const FIntVector& ActorChunkLocation)
 			{
 				const FIntVector CurrentChunkLocation = FIntVector(X * ChunkSize.X, Y * ChunkSize.Y, Z * ChunkSize.Z) * VoxelSize;
 
-				if (IsChunkIsAlreadyVisited(CurrentChunkLocation))
+				if (VisitedChunkMap.Contains(CurrentChunkLocation))
 				{
 					continue;
 				}
 
 				ChunkQueue.Enqueue(FVector(CurrentChunkLocation));
-				VisitedChunkLocation.Add(CurrentChunkLocation);
 			}
 		}
 	}
-}
-
-bool AMinecraftGameState::IsChunkIsAlreadyVisited(const FIntVector& ChunkLocation)
-{
-	return VisitedChunkLocation.Contains(ChunkLocation);
 }
 
 void AMinecraftGameState::BeginPlay()
@@ -55,17 +50,38 @@ void AMinecraftGameState::Tick(float DeltaSeconds)
 	ProcessChunkQueue();
 }
 
+void AMinecraftGameState::SetVoxel(const FVector& GlobalLocation, const EVoxelType& VoxelType)
+{
+	
+	for (auto & Pair : VisitedChunkMap)
+	{
+		FIntVector ChunkLocation = Pair.Key;
+		FIntVector LocalLocation = ChunkUtil::ConvertGlobalToLocal(GlobalLocation, FVector(ChunkLocation), VoxelSize);
+		
+		if (ChunkUtil::BoundaryCheck3D(LocalLocation, ChunkSize))
+		{
+			AChunk* Chunk = Pair.Value;
+			Chunk->SetVoxel(GlobalLocation, VoxelType);
+		}
+	}
+}
+
+void AMinecraftGameState::SetVoxel(const FVector& GlobalLocation, const FVector& Normal, const EVoxelType& VoxelType)
+{
+	SetVoxel(GlobalLocation + Normal * 0.01f, VoxelType);
+}
+
+void AMinecraftGameState::DeleteVoxel(const FVector& GlobalLocation, const FVector& Forward)
+{
+	SetVoxel(GlobalLocation + Forward * 0.01f, EVoxelType::NONE);
+}
+
 void AMinecraftGameState::CheckPlayerChunkLocation()
 {
 	for (int32 PlayerIdx = 0; PlayerIdx < PlayerArray.Num(); PlayerIdx++)
 	{
 		FVector ActorLoaction = UGameplayStatics::GetPlayerPawn(GetWorld(), PlayerIdx)->GetActorLocation();
-		
-		ActorLoaction.X = FMath::FloorToInt(ActorLoaction.X / VoxelSize / ChunkSize.X);
-		ActorLoaction.Y = FMath::FloorToInt(ActorLoaction.Y / VoxelSize / ChunkSize.Y);
-		ActorLoaction.Z = FMath::FloorToInt(ActorLoaction.Z / VoxelSize / ChunkSize.Z);
-
-		FIntVector ActorChunkLocation = FIntVector(ActorLoaction);
+		FIntVector ActorChunkLocation = ChunkUtil::ConvertLocationToOffset(ActorLoaction, ChunkSize, VoxelSize);
 
 		if (PreviousActorChunkLocationArray[PlayerIdx] == ActorChunkLocation)
 		{
@@ -87,6 +103,8 @@ void AMinecraftGameState::ProcessChunkQueue()
 	FVector ChunkLocation;
 	ChunkQueue.Dequeue(ChunkLocation);
 
-	AChunk* Chunk = GetWorld()->SpawnActor<AChunk>(FVector(ChunkLocation), ChunkRotation);
+	AChunk* Chunk = GetWorld()->SpawnActor<AChunk>(ChunkLocation, ChunkRotation);
 	Chunk->Init(RandomSeed, ChunkSize, NoiseScale, NoiseWeight, VoxelSize);
+
+	VisitedChunkMap.Add(FIntVector(ChunkLocation), Chunk);
 }

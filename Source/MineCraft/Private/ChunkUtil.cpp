@@ -57,10 +57,29 @@ FIntVector ChunkUtil::GetNeighborIndex(int32 Index, int32 Direction, FIntVector 
 
 FIntVector ChunkUtil::ConvertGlobalToLocal(FVector GlobalLocation, FVector ChunkLocation, int32 Size)
 {
-	FIntVector LocalChunkLocation = FIntVector(GlobalLocation - ChunkLocation);
-	LocalChunkLocation.X /= Size;
-	LocalChunkLocation.Y /= Size;
-	LocalChunkLocation.Z /= Size;
+	FVector LocalChunkLocation = GlobalLocation - ChunkLocation;
+	LocalChunkLocation.X = FMath::FloorToInt(LocalChunkLocation.X / Size);
+	LocalChunkLocation.Y = FMath::FloorToInt(LocalChunkLocation.Y / Size);
+	LocalChunkLocation.Z = FMath::FloorToInt(LocalChunkLocation.Z / Size);
 
-	return LocalChunkLocation;
+	return FIntVector(LocalChunkLocation);
+}
+
+FVector ChunkUtil::ConvertOffsetToLocation(FIntVector Offset, FIntVector ChunkSize, int32 VoxelSize)
+{
+	FVector ChunkLocation;
+	ChunkLocation.X = Offset.X * ChunkSize.X * VoxelSize;
+	ChunkLocation.Y = Offset.Y * ChunkSize.Y * VoxelSize;
+	ChunkLocation.Z = Offset.Z * ChunkSize.Z * VoxelSize;
+	return ChunkLocation;
+}
+
+FIntVector ChunkUtil::ConvertLocationToOffset(FVector Location, FIntVector ChunkSize, int32 VoxelSize)
+{
+	FIntVector Offset;
+	Offset.X = FMath::FloorToInt(Location.X / VoxelSize / ChunkSize.X);
+	Offset.Y = FMath::FloorToInt(Location.Y / VoxelSize / ChunkSize.Y);
+	Offset.Z = FMath::FloorToInt(Location.Z / VoxelSize / ChunkSize.Z);
+
+	return Offset;
 }

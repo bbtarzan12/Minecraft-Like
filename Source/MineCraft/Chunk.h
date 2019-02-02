@@ -79,7 +79,6 @@ private:
 	static TMap<EVoxelType, UMaterialInstanceDynamic*> VoxelMaterials;
 	void StartTask();
 	void StartTask(int32 Index, EVoxelType VoxelType);
-	void SetVoxel(const FVector& GlobalLocation, const EVoxelType& VoxelType);
 
 public:
 	// Sets default values for this actor's properties
@@ -90,10 +89,8 @@ protected:
 	virtual void OnConstruction(const FTransform& Transform) override;
 
 public:
-
+	void SetVoxel(const FVector& GlobalLocation, const EVoxelType& VoxelType);
 	void Init(int32 RandomSeed, FIntVector ChunkSize, float NoiseScale, float NoiseWeight, int32 VoxelSize);
 	void GenerateMesh(const TMap<EVoxelType, FChunkMesh*>& MeshData);
 	void SetVoxelData(const TArray<FVoxelFace>& VoxelData);
-	void SetVoxel(const FVector& GlobalLocation, const FVector& Normal, const EVoxelType& VoxelType);
-	void DeleteVoxel(const FVector& GlobalLocation, const FVector& Forward);
 };

@@ -6,9 +6,9 @@
 #include "GameFramework/GameStateBase.h"
 #include "MinecraftGameState.generated.h"
 
-/**
- * 
- */
+class AChunk;
+enum class EVoxelType : uint8;
+
 UCLASS()
 class MINECRAFT_API AMinecraftGameState : public AGameStateBase
 {
@@ -35,20 +35,24 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Meta = (ExposeOnSpawn = true), Category = Chunk)
 	int32 ChunkIteration = 4;
 
+public:
+	void SetVoxel(const FVector& GlobalLocation, const FVector& Normal, const EVoxelType& VoxelType);
+	void DeleteVoxel(const FVector& GlobalLocation, const FVector& Forward);
+
 protected:
 	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaSeconds) override;
 
 private:
+	void SetVoxel(const FVector& GlobalLocation, const EVoxelType& VoxelType);
 	void CheckPlayerChunkLocation();
 	void ProcessChunkQueue();
 	void SetChunkToLoad(const FIntVector& ActorChunkLocation);
-	bool IsChunkIsAlreadyVisited(const FIntVector& ChunkLocation);
 
 	UPROPERTY()
 	TArray<FIntVector> PreviousActorChunkLocationArray;
 
-	TSet<FIntVector> VisitedChunkLocation;
+	TMap<FIntVector, AChunk*> VisitedChunkMap;
 	TQueue<FVector> ChunkQueue;
 	
 };
