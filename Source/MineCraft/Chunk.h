@@ -19,7 +19,7 @@ enum class EFaceDirection : uint8
 UENUM()
 enum class EVoxelType : uint8
 {
-	NONE, GRASS, DIRT, COBBLESTONE
+	NONE, GRASS, DIRT, COBBLESTONE, LOG, LEAVES
 };
 
 USTRUCT()
@@ -64,7 +64,7 @@ public:
 	int32 VoxelSize = 100;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Meta = (ExposeOnSpawn = true), Category = Chunk)
-	FIntVector ChunkLocation;
+	FIntVector ChunkOffset;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Meta = (ExposeOnSpawn = true), Category = Chunk)
 	FVector Location;

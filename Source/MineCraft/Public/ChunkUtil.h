@@ -15,6 +15,8 @@ public:
 
 	static bool BoundaryCheck3D(FIntVector Coord, FIntVector Size);
 	static bool BoundaryCheck3D(int32 X, int32 Y, int32 Z, FIntVector Size);
+	static bool BoundaryCheckBox(FIntVector Coord, FIntVector Min, FIntVector Max);
+	static bool BoundaryCheckBox(int32 X, int32 Y, int32 Z, FIntVector Min, FIntVector Max);
 
 	static FIntVector GetNeighborIndex(int32 Index, int32 Direction, FIntVector Size);
 	static FIntVector GetNeighborIndex(FIntVector Coord, int32 Direction);

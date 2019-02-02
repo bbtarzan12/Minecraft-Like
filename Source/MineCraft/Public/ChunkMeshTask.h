@@ -34,7 +34,7 @@ class MINECRAFT_API ChunkMeshTask : public FNonAbandonableTask
 {
 
 public:
-	ChunkMeshTask(AChunk* Owner, const FIntVector& ChunkLocation, const FIntVector& ChunkSize, const int32& VoxelSize, const float& NoiseWeight, const float& NoiseScale, const int32& RandomSeed);
+	ChunkMeshTask(AChunk* Owner, const FIntVector& ChunkOffset, const FIntVector& ChunkSize, const int32& VoxelSize, const float& NoiseWeight, const float& NoiseScale, const int32& RandomSeed);
 	ChunkMeshTask(AChunk* Owner, const FIntVector& ChunkSize, const int32& VoxelSize, const TArray<FVoxelFace>& VoxelData, const int32& Index, const EVoxelType& VoxelType);
 	~ChunkMeshTask();
 
@@ -43,7 +43,7 @@ public:
 	TMap<EVoxelType, FChunkMesh*> MeshData;
 	AChunk* Owner;
 
-	FIntVector ChunkLocation;
+	FIntVector ChunkOffset;
 	FIntVector ChunkSize;
 	int32 VoxelSize = 0;
 	float NoiseWeight = 0;

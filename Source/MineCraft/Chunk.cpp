@@ -46,7 +46,7 @@ AChunk::AChunk()
 
 void AChunk::StartTask()
 {
-	(new FAsyncTask<ChunkMeshTask>(this, ChunkLocation, ChunkSize, VoxelSize, NoiseWeight, NoiseScale, RandomSeed))->StartBackgroundTask();
+	(new FAsyncTask<ChunkMeshTask>(this, ChunkOffset, ChunkSize, VoxelSize, NoiseWeight, NoiseScale, RandomSeed))->StartBackgroundTask();
 }
 
 
@@ -75,10 +75,10 @@ void AChunk::Init(int32 RandomSeed, FIntVector ChunkSize, float NoiseScale, floa
 	this->VoxelSize = VoxelSize;
 
 	Location = GetActorLocation();
-	ChunkLocation = FIntVector(Location);
-	ChunkLocation.X /= (ChunkSize.X * VoxelSize);
-	ChunkLocation.Y /= (ChunkSize.Y * VoxelSize);
-	ChunkLocation.Z /= (ChunkSize.Z * VoxelSize);
+	ChunkOffset = FIntVector(Location);
+	ChunkOffset.X /= (ChunkSize.X * VoxelSize);
+	ChunkOffset.Y /= (ChunkSize.Y * VoxelSize);
+	ChunkOffset.Z /= (ChunkSize.Z * VoxelSize);
 
 	VoxelSizeHalf = VoxelSize / 2;
 	StartTask();

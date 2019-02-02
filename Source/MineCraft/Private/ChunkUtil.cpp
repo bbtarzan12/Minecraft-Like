@@ -30,6 +30,22 @@ bool ChunkUtil::BoundaryCheck3D(FIntVector Coord, FIntVector Size)
 	return BoundaryCheck3D(Coord.X, Coord.Y, Coord.Z, Size);
 }
 
+bool ChunkUtil::BoundaryCheckBox(FIntVector Coord, FIntVector Min, FIntVector Max)
+{
+	return BoundaryCheckBox(Coord.X, Coord.Y, Coord.Z, Min, Max);
+}
+
+bool ChunkUtil::BoundaryCheckBox(int32 X, int32 Y, int32 Z, FIntVector Min, FIntVector Max)
+{
+	return
+		X >= Min.X &&
+		X <= Max.X &&
+		Y >= Min.Y &&
+		Y <= Max.Y &&
+		Z >= Min.Z &&
+		Z <= Max.Z;
+}
+
 FIntVector ChunkUtil::GetNeighborIndex(int32 X, int32 Y, int32 Z, int32 Direction)
 {
 	switch (Direction)
