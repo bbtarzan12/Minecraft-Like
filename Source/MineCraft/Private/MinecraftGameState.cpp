@@ -33,6 +33,7 @@ void AMinecraftGameState::SetChunkToLoad(const FIntVector& ActorChunkLocation)
 				}
 
 				ChunkQueue.Enqueue(FVector(CurrentChunkLocation));
+				VisitedChunkMap.Add(CurrentChunkLocation, nullptr);
 			}
 		}
 	}
@@ -52,7 +53,7 @@ void AMinecraftGameState::Tick(float DeltaSeconds)
 
 void AMinecraftGameState::SetVoxel(const FVector& GlobalLocation, const EVoxelType& VoxelType)
 {
-	
+	bool bCheck = false;
 	for (auto & Pair : VisitedChunkMap)
 	{
 		FIntVector ChunkLocation = Pair.Key;
@@ -60,10 +61,13 @@ void AMinecraftGameState::SetVoxel(const FVector& GlobalLocation, const EVoxelTy
 		
 		if (ChunkUtil::BoundaryCheck3D(LocalLocation, ChunkSize))
 		{
+			check(bCheck == false);
 			AChunk* Chunk = Pair.Value;
 			Chunk->SetVoxel(GlobalLocation, VoxelType);
+			bCheck = true;
 		}
 	}
+	check(bCheck == true);
 }
 
 void AMinecraftGameState::SetVoxel(const FVector& GlobalLocation, const FVector& Normal, const EVoxelType& VoxelType)
@@ -106,5 +110,6 @@ void AMinecraftGameState::ProcessChunkQueue()
 	AChunk* Chunk = GetWorld()->SpawnActor<AChunk>(ChunkLocation, ChunkRotation);
 	Chunk->Init(RandomSeed, ChunkSize, NoiseScale, NoiseWeight, VoxelSize);
 
-	VisitedChunkMap.Add(FIntVector(ChunkLocation), Chunk);
+	check(VisitedChunkMap.Contains(FIntVector(ChunkLocation)));
+	VisitedChunkMap[FIntVector(ChunkLocation)] = Chunk;
 }

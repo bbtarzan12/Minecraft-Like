@@ -97,6 +97,7 @@ void AChunk::GenerateMesh(const TMap<EVoxelType, FChunkMesh*>& MeshData)
 			ProceduralMeshComponent->SetMaterial(SectionIndex, VoxelMaterials[Pair.Key]);
 		}
 	}
+	GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Red, FString::Printf(TEXT("Chunk Mesh Generated: %s"), *GetFName().ToString()));
 }
 
 void AChunk::SetVoxelData(const TArray<FVoxelFace>& VoxelData)
