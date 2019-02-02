@@ -3,20 +3,20 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Components/ActorComponent.h"
-#include "VoxelGenerator.generated.h"
+#include "GameFramework/GameStateBase.h"
+#include "MinecraftGameState.generated.h"
 
-class AChunk;
-
-UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
-class MINECRAFT_API UVoxelGenerator : public UActorComponent
+/**
+ * 
+ */
+UCLASS()
+class MINECRAFT_API AMinecraftGameState : public AGameStateBase
 {
 	GENERATED_BODY()
+	
+	AMinecraftGameState();
 
-public:	
-	// Sets default values for this component's properties
-	UVoxelGenerator();
-
+public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Meta = (ExposeOnSpawn = true), Category = Chunk)
 	int32 RandomSeed = 0;
 
@@ -35,24 +35,20 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Meta = (ExposeOnSpawn = true), Category = Chunk)
 	int32 ChunkIteration = 4;
 
-	TSet<FIntVector> VisitedChunkLocation;
+protected:
+	virtual void BeginPlay() override;
+	virtual void Tick(float DeltaSeconds) override;
 
 private:
-	FIntVector PreviousChunkLocation = FIntVector::NoneValue;
-	FIntVector ActorChunkLocation = FIntVector::ZeroValue;
-	FTimerHandle ChunkTimerHandle;
-	TQueue<FVector> ChunkQueue;
-
-	void GenerateChunks();
+	void CheckPlayerChunkLocation();
 	void ProcessChunkQueue();
+	void SetChunkToLoad(const FIntVector& ActorChunkLocation);
+	bool IsChunkIsAlreadyVisited(const FIntVector& ChunkLocation);
 
-protected:
-	// Called when the game starts
-	virtual void BeginPlay() override;
+	UPROPERTY()
+	TArray<FIntVector> PreviousActorChunkLocationArray;
 
-public:	
-	// Called every frame
-	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
-
-		
+	TSet<FIntVector> VisitedChunkLocation;
+	TQueue<FVector> ChunkQueue;
+	
 };

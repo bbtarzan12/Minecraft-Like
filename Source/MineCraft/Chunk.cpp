@@ -6,7 +6,7 @@
 #include "DrawDebugHelpers.h"
 #include "Async/ParallelFor.h"
 #include "Public/ChunkMeshTask.h"
-#include "Public/VoxelUtil.h"
+#include "Public/ChunkUtil.h"
 
 TMap<EVoxelType, UMaterialInstanceDynamic*> AChunk::VoxelMaterials;
 
@@ -104,8 +104,8 @@ void AChunk::SetVoxelData(const TArray<FVoxelFace>& VoxelData)
 
 void AChunk::SetVoxel(const FVector& GlobalLocation, const EVoxelType& VoxelType)
 {
-	FIntVector LocalLocation = VoxelUtil::ConvertGlobalToLocal(GlobalLocation, Location, VoxelSize);
-	int32 Index = VoxelUtil::Convert3Dto1DIndex(LocalLocation, ChunkSize);
+	FIntVector LocalLocation = ChunkUtil::ConvertGlobalToLocal(GlobalLocation, Location, VoxelSize);
+	int32 Index = ChunkUtil::Convert3Dto1DIndex(LocalLocation, ChunkSize);
 
 	GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Red, FString::Printf(TEXT("Global Location: %s"), *GlobalLocation.ToString()));
 	GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Red, FString::Printf(TEXT("Local Location: %s"), *LocalLocation.ToString()));

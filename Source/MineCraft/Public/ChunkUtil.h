@@ -2,10 +2,11 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
+class AMineCraftGameMode;
 
-static class MINECRAFT_API VoxelUtil
+static class MINECRAFT_API ChunkUtil
 {
+
 public:
 	static int32 Convert3Dto1DIndex(FIntVector Coord, FIntVector Size);
 	static int32 Convert3Dto1DIndex(int32 X, int32 Y, int32 Z, FIntVector Size);
@@ -20,4 +21,5 @@ public:
 	static FIntVector GetNeighborIndex(int32 X, int32 Y, int32 Z, int32 Direction);
 
 	static FIntVector ConvertGlobalToLocal(FVector GlobalLocation, FVector ChunkLocation, int32 Size);
+	
 };

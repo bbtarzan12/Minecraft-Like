@@ -10,9 +10,8 @@ UCLASS(minimalapi)
 class AMineCraftGameMode : public AGameModeBase
 {
 	GENERATED_BODY()
-
-public:
 	AMineCraftGameMode();
+
 };
 
 

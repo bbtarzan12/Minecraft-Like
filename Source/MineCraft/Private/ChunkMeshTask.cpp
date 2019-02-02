@@ -5,7 +5,7 @@
 #include "Chunk.h"
 #include "ProceduralMeshComponent.h"
 #include "SimplexNoiseBPLibrary.h"
-#include "Public/VoxelUtil.h"
+#include "Public/ChunkUtil.h"
 #include "Async.h"
 
 const int32 bBackTriangles[] = { 2,3,1, 1,0,2 };
@@ -82,12 +82,12 @@ void ChunkMeshTask::DoWork()
 
 FVoxelFace ChunkMeshTask::GetVoxelFace(int32 X, int32 Y, int32 Z, EFaceDirection Side)
 {
-	int32 Index = VoxelUtil::Convert3Dto1DIndex(X, Y, Z, ChunkSize);
+	int32 Index = ChunkUtil::Convert3Dto1DIndex(X, Y, Z, ChunkSize);
 	VoxelData[Index].Side = Side;
 	VoxelData[Index].Transparent = false;
-	FIntVector OppositeCoord = VoxelUtil::GetNeighborIndex(X, Y, Z, (int32)Side);
-	int32 NeighborIndex = VoxelUtil::Convert3Dto1DIndex(OppositeCoord, ChunkSize);
-	if (VoxelUtil::BoundaryCheck3D(OppositeCoord, ChunkSize))
+	FIntVector OppositeCoord = ChunkUtil::GetNeighborIndex(X, Y, Z, (int32)Side);
+	int32 NeighborIndex = ChunkUtil::Convert3Dto1DIndex(OppositeCoord, ChunkSize);
+	if (ChunkUtil::BoundaryCheck3D(OppositeCoord, ChunkSize))
 	{
 		if (VoxelData[NeighborIndex].Type != EVoxelType::NONE)
 		{
@@ -109,7 +109,7 @@ void ChunkMeshTask::GenerateChunk()
 		{
 			for (int32 Z = 0; Z < ChunkSize.Z; Z++)
 			{
-				int32 Index = VoxelUtil::Convert3Dto1DIndex(X, Y, Z, ChunkSize);
+				int32 Index = ChunkUtil::Convert3Dto1DIndex(X, Y, Z, ChunkSize);
 
 				FIntVector CurrentChunkLocation;
 				CurrentChunkLocation.X = ChunkLocation.X * ChunkSize.X + X;
