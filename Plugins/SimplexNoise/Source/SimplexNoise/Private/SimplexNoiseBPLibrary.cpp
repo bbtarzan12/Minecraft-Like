@@ -467,6 +467,54 @@ float USimplexNoiseBPLibrary::SimplexNoise4D(float x, float y, float z, float w)
 	return 27.0f * (n0 + n1 + n2 + n3 + n4); 
 }
 
+float USimplexNoiseBPLibrary::SimplexNoise2DFractal(float x, float y, int32 Octaves, float Frequency, float Amplitude, float Lacunarity, float Persistence)
+{
+	float output = 0.f;
+	float denom = 0.f;
+	float frequency = Frequency;
+	float amplitude = Amplitude;
+
+	for (size_t i = 0; i < Octaves; i++)
+	{
+		output += (amplitude * SimplexNoise2D(x * Frequency, y * Frequency));
+		denom += amplitude;
+
+		frequency *= Lacunarity;
+		amplitude *= Persistence;
+	}
+
+	return (output / denom);
+}
+
+float USimplexNoiseBPLibrary::SimplexNoiseFractal3D(float x, float y, float z, int32 Octaves /*= 1*/, float Frequency /*= 1.0f*/, float Amplitude /*= 1.0f*/, float Lacunarity /*= 2.0f*/, float Persistence /*= 0.5f*/)
+{
+	float output = 0.f;
+	float denom = 0.f;
+	float frequency = Frequency;
+	float amplitude = Amplitude;
+
+	for (size_t i = 0; i < Octaves; i++)
+	{
+		output += (amplitude * SimplexNoise3D(x * frequency, y * frequency, z * frequency));
+		denom += amplitude;
+
+		frequency *= Lacunarity;
+		amplitude *= Persistence;
+	}
+
+	return (output / denom);
+}
+
+float USimplexNoiseBPLibrary::SimplexNoiseScaledFractal2D(float x, float y, float s, int32 Octaves, float Frequency, float Amplitude, float Lacunarity, float Persistence)
+{
+	return SimplexNoise2DFractal(x * s, y * s, Octaves, Frequency, Amplitude, Lacunarity, Persistence);
+}
+
+float USimplexNoiseBPLibrary::SimplexNoiseScaledFractal3D(float x, float y, float z, float s /*= 1.0f*/, int32 Octaves /*= 1*/, float Frequency /*= 1.0f*/, float Amplitude /*= 1.0f*/, float Lacunarity /*= 2.0f*/, float Persistence /*= 0.5f*/)
+{
+	return SimplexNoiseFractal3D(x * s, y * s, z * s, Octaves, Frequency, Amplitude, Lacunarity, Persistence);
+}
+
 // Scaled by float value
 
 float USimplexNoiseBPLibrary::SimplexNoiseScaled1D(float x, float s)

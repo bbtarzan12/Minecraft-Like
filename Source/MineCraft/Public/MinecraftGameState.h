@@ -33,7 +33,7 @@ public:
 	int32 VoxelSize = 100;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Meta = (ExposeOnSpawn = true), Category = Chunk)
-	int32 ChunkIteration = 4;
+	FIntVector ChunkIteration = FIntVector(3, 3, 1);
 
 public:
 	void SetVoxel(const FVector& GlobalLocation, const FVector& Normal, const EVoxelType& VoxelType);

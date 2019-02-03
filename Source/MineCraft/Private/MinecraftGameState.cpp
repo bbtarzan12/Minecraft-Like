@@ -19,11 +19,11 @@ void AMinecraftGameState::SetChunkToLoad(const FIntVector& ActorChunkLocation)
 		GEngine->AddOnScreenDebugMessage(-1, 5, FColor::Yellow, FString::Printf(TEXT("GenerateChunks Actor Location : %d %d %d"), ActorChunkLocation.X, ActorChunkLocation.Y, ActorChunkLocation.Z));
 	}
 
-	for (int X = ActorChunkLocation.X - ChunkIteration; X <= ActorChunkLocation.X + ChunkIteration; X++)
+	for (int X = ActorChunkLocation.X - ChunkIteration.X; X <= ActorChunkLocation.X + ChunkIteration.X; X++)
 	{
-		for (int Y = ActorChunkLocation.Y - ChunkIteration; Y <= ActorChunkLocation.Y + ChunkIteration; Y++)
+		for (int Y = ActorChunkLocation.Y - ChunkIteration.Y; Y <= ActorChunkLocation.Y + ChunkIteration.Y; Y++)
 		{
-			for (int Z = ActorChunkLocation.Z - ChunkIteration; Z <= ActorChunkLocation.Z + ChunkIteration; Z++)
+			for (int Z = ActorChunkLocation.Z - ChunkIteration.Z; Z <= ActorChunkLocation.Z + ChunkIteration.Z; Z++)
 			{
 				const FIntVector CurrentChunkLocation = FIntVector(X * ChunkSize.X, Y * ChunkSize.Y, Z * ChunkSize.Z) * VoxelSize;
 

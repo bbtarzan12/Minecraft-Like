@@ -75,8 +75,11 @@ void ChunkMeshTask::DoWork()
 
 	AsyncTask(ENamedThreads::GameThread, [&]()
 	{
-		Owner->SetVoxelData(VoxelData);
-		Owner->GenerateMesh(MeshData);
+		if (Owner != nullptr)
+		{
+			Owner->SetVoxelData(VoxelData);
+			Owner->GenerateMesh(MeshData);
+		}
 	});
 }
 
@@ -124,15 +127,22 @@ void ChunkMeshTask::GenerateChunk()
 				CurrentChunkLocation.Y = ChunkLocation.Y + Y;
 				CurrentChunkLocation.Z = ChunkLocation.Z + Z;
 
-				FVector ScaledNoiseOffset;
-				ScaledNoiseOffset.X = CurrentChunkLocation.X * NoiseScale;
-				ScaledNoiseOffset.Y = CurrentChunkLocation.Y * NoiseScale;
+				float GroundValue = USimplexNoiseBPLibrary::SimplexNoiseScaledFractal2D(CurrentChunkLocation.X, CurrentChunkLocation.Y, 0.01f, 3, 4.0f, 32.0f) * 3.0f;
+				float MountainValue = USimplexNoiseBPLibrary::SimplexNoiseScaledFractal2D(CurrentChunkLocation.X, CurrentChunkLocation.Y, 0.01f, 5, 0.2f, 256.0f, 1.0f, 1.0f) * 64.0f;
+				float Mountain3DMask = USimplexNoiseBPLibrary::SimplexNoiseScaledFractal3D(CurrentChunkLocation.X, CurrentChunkLocation.Y, CurrentChunkLocation.Z, 0.05f);
+				if (MountainValue < 0)
+					MountainValue = 1;
 
-				float NoiseValue = USimplexNoiseBPLibrary::SimplexNoiseScaled2D(ScaledNoiseOffset.X, ScaledNoiseOffset.Y, NoiseWeight);
+				float NoiseValue = GroundValue + MountainValue;
 
 				FVoxelFace VoxelFace = FVoxelFace();
 
-				if (NoiseValue + 8 > CurrentChunkLocation.Z)
+				if (20 < CurrentChunkLocation.Z && Mountain3DMask > 0.4f)
+				{
+					VoxelFace.Type = EVoxelType::NONE;
+					VoxelFace.IsValid = false;
+				}
+				else if (NoiseValue + 8 > CurrentChunkLocation.Z)
 				{
 					VoxelFace.Type = EVoxelType::COBBLESTONE;
 					VoxelFace.IsValid = true;
@@ -147,7 +157,7 @@ void ChunkMeshTask::GenerateChunk()
 					VoxelFace.Type = EVoxelType::GRASS;
 					VoxelFace.IsValid = true;
 				}
-				else if (NoiseValue + 11 > CurrentChunkLocation.Z && RandomStream.FRand() < 0.05f)
+				else if (NoiseValue + 11 > CurrentChunkLocation.Z && RandomStream.FRand() < 0.1f)
 				{
 					VoxelData[Index].Type = EVoxelType::LOG;
 					VoxelData[Index].IsValid = true;
@@ -177,6 +187,11 @@ void ChunkMeshTask::GenerateChunk()
 				{
 					if (ChunkUtil::BoundaryCheck3D(X, Y, Z, ChunkSize))
 					{
+						if ((Z == Root.Z || Z == Root.Z + 1) && !(X == Root.X && Y == Root.Z))
+						{
+							continue;
+						}
+
 						int32 Index = ChunkUtil::Convert3Dto1DIndex(X, Y, Z, ChunkSize);
 						if (VoxelData[Index].Type == EVoxelType::NONE)
 						{
@@ -202,20 +217,20 @@ void ChunkMeshTask::GenerateChunk()
 			{
 				for (int32 Y = -1; Y <= 1; Y++)
 				{
-					for (int32 Z = 2; Z < 5; Z++)
+					for (int32 Z = 2; Z < 6; Z++)
 					{
 						int32 Index = ChunkUtil::Convert3Dto1DIndex(Root.X + X, Root.Y + Y, Root.Z + Z, ChunkSize);
 
-						if (X != 0 || Y != 0)
+						if ((X != 0 || Y != 0) || (Z == 5 && X == 0 && Y == 0))
 						{
 							VoxelData[Index].Type = EVoxelType::LEAVES;
 							VoxelData[Index].IsValid = true;
 						}
-
-
 					}
 				}
 			}
+
+
 		}
 		else
 		{
