@@ -33,7 +33,7 @@ public:
 	int32 VoxelSize = 100;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Meta = (ExposeOnSpawn = true), Category = Chunk)
-	FIntVector ChunkIteration = FIntVector(3, 3, 1);
+	FIntVector ChunkIteration = FIntVector(5, 5, 2);
 
 public:
 	void SetVoxel(const FVector& GlobalLocation, const FVector& Normal, const EVoxelType& VoxelType);
@@ -53,6 +53,7 @@ private:
 	TArray<FIntVector> PreviousActorChunkLocationArray;
 
 	TMap<FIntVector, AChunk*> VisitedChunkMap;
-	TQueue<FVector> ChunkQueue;
+	TQueue<FVector> OldChunkQueue;
+	TArray<FVector> ChunkQueue;
 	
 };

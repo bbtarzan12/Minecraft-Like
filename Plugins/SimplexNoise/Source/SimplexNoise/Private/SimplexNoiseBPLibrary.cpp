@@ -515,6 +515,12 @@ float USimplexNoiseBPLibrary::SimplexNoiseScaledFractal3D(float x, float y, floa
 	return SimplexNoiseFractal3D(x * s, y * s, z * s, Octaves, Frequency, Amplitude, Lacunarity, Persistence);
 }
 
+float USimplexNoiseBPLibrary::SimplexNoiseScaledFractalInRange2D(float x, float y, float rangeMin /*= 0.0f*/, float rangeMax /*= 1.0f*/, float s /*= 1.0f*/, int32 Octaves /*= 1*/, float Frequency /*= 1.0f*/, float Amplitude /*= 1.0f*/, float Lacunarity /*= 2.0f*/, float Persistence /*= 0.5f*/)
+{
+	if (rangeMax < rangeMin)rangeMax = rangeMin + 1.0f;
+	return SimplexNoiseScaledFractal2D(x, y, s, Octaves, Frequency, Amplitude, Lacunarity, Persistence) * (rangeMax - rangeMin) + rangeMin;
+}
+
 // Scaled by float value
 
 float USimplexNoiseBPLibrary::SimplexNoiseScaled1D(float x, float s)

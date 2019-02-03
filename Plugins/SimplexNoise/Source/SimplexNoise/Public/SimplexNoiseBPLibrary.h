@@ -66,6 +66,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "SimplexNoise")
 	static float SimplexNoiseScaledFractal3D(float x, float y, float z, float s = 1.0f, int32 Octaves = 1, float Frequency = 1.0f, float Amplitude = 1.0f, float Lacunarity = 2.0f, float Persistence = 0.5f);
 
+	UFUNCTION(BlueprintCallable, Category = "SimplexNoise")
+	static float SimplexNoiseScaledFractalInRange2D(float x, float y, float rangeMin = 0.0f, float rangeMax = 1.0f, float s = 1.0f, int32 Octaves = 1, float Frequency = 1.0f, float Amplitude = 1.0f, float Lacunarity = 2.0f, float Persistence = 0.5f);
+
 
 	// Scaled by float value
 	UFUNCTION(BlueprintCallable, Category = "SimplexNoise")

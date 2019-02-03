@@ -35,11 +35,11 @@ class MINECRAFT_API ChunkMeshTask : public FNonAbandonableTask
 
 public:
 	ChunkMeshTask(AChunk* Owner, const FIntVector& ChunkOffset, const FIntVector& ChunkSize, const int32& VoxelSize, const float& NoiseWeight, const float& NoiseScale, const int32& RandomSeed);
-	ChunkMeshTask(AChunk* Owner, const FIntVector& ChunkSize, const int32& VoxelSize, const TArray<FVoxelFace>& VoxelData, const int32& Index, const EVoxelType& VoxelType);
+	ChunkMeshTask(AChunk* Owner, const FIntVector& ChunkSize, const int32& VoxelSize, const TArray<FVoxelFace>& VoxelData, const TMap<EVoxelType, TArray<FIntVector>>& PlantData, const int32& Index, const EVoxelType& VoxelType);
 	~ChunkMeshTask();
 
 	TArray<FVoxelFace> VoxelData;
-
+	TMap<EVoxelType, TArray<FIntVector>> PlantData;
 	TMap<EVoxelType, FChunkMesh*> MeshData;
 	AChunk* Owner;
 
@@ -63,6 +63,7 @@ public:
 	FVoxelFace GetVoxelFace(int32 X, int32 Y, int32 Z, EFaceDirection Side);
 	void GenerateChunk();
 	void UpdateMesh();
+	void UpdatePlants();
 	void UpdateQuad(FVector BottomLeft, FVector TopLeft, FVector TopRight, FVector BottomRight, int32 Width, int32 Height, FVoxelFace VoxelFace, bool BackFace);
 
 };

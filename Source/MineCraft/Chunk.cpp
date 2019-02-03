@@ -52,7 +52,7 @@ void AChunk::StartTask()
 
 void AChunk::StartTask(int32 Index, EVoxelType VoxelType)
 {
-	(new FAsyncTask<ChunkMeshTask>(this, ChunkSize, VoxelSize, VoxelData, Index, VoxelType))->StartSynchronousTask();
+	(new FAsyncTask<ChunkMeshTask>(this, ChunkSize, VoxelSize, VoxelData, PlantData, Index, VoxelType))->StartSynchronousTask();
 }
 
 void AChunk::OnConstruction(const FTransform& Transform)
@@ -103,6 +103,11 @@ void AChunk::GenerateMesh(const TMap<EVoxelType, FChunkMesh*>& MeshData)
 void AChunk::SetVoxelData(const TArray<FVoxelFace>& VoxelData)
 {
 	this->VoxelData = VoxelData;
+}
+
+void AChunk::SetPlantData(const TMap<EVoxelType, TArray<FIntVector>>& PlantData)
+{
+	this->PlantData = PlantData;
 }
 
 void AChunk::SetVoxel(const FVector& GlobalLocation, const EVoxelType& VoxelType)

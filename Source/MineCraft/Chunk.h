@@ -19,7 +19,7 @@ enum class EFaceDirection : uint8
 UENUM()
 enum class EVoxelType : uint8
 {
-	NONE, GRASS, DIRT, COBBLESTONE, LOG, LEAVES
+	NONE, GRASS, DIRT, COBBLESTONE, LOG, LEAVES, TALLGRASS
 };
 
 USTRUCT()
@@ -27,14 +27,16 @@ struct FVoxelFace
 {
 	GENERATED_USTRUCT_BODY()
 	
-	bool Transparent;
-	EVoxelType Type;
+	bool Transparent = false;
+	EVoxelType Type = EVoxelType::NONE;
 	EFaceDirection Side;
-	bool IsValid;
+	bool IsValid = false;
+	bool IsOpacity = false;
+	bool HasMesh = false;
 
 	FORCEINLINE bool operator==(const FVoxelFace & Other) const
 	{
-		return IsValid == true && Other.IsValid == true && Transparent == Other.Transparent && Type == Other.Type;
+		return IsValid == true && Other.IsValid == true && Transparent == Other.Transparent && Type == Other.Type && IsOpacity == Other.IsOpacity && HasMesh == Other.HasMesh;
 	}
 	
 };
@@ -75,6 +77,8 @@ public:
 	UPROPERTY()
 	TArray<FVoxelFace> VoxelData;
 
+	TMap<EVoxelType, TArray<FIntVector>> PlantData;
+
 private:
 	static TMap<EVoxelType, UMaterialInstanceDynamic*> VoxelMaterials;
 	void StartTask();
@@ -93,4 +97,5 @@ public:
 	void Init(int32 RandomSeed, FIntVector ChunkSize, float NoiseScale, float NoiseWeight, int32 VoxelSize);
 	void GenerateMesh(const TMap<EVoxelType, FChunkMesh*>& MeshData);
 	void SetVoxelData(const TArray<FVoxelFace>& VoxelData);
+	void SetPlantData(const TMap<EVoxelType, TArray<FIntVector>>& PlantData);
 };

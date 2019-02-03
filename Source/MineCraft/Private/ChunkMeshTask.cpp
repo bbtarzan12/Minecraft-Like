@@ -43,8 +43,8 @@ ChunkMeshTask::ChunkMeshTask(AChunk* Owner, const FIntVector& ChunkOffset, const
 	bIsFirstTime = true;
 }
 
-ChunkMeshTask::ChunkMeshTask(AChunk* Owner, const FIntVector& ChunkSize, const int32& VoxelSize, const TArray<FVoxelFace>& VoxelData, const int32& Index, const EVoxelType& VoxelType)
-	: Owner(Owner), ChunkSize(ChunkSize), VoxelSize(VoxelSize), VoxelData(VoxelData)
+ChunkMeshTask::ChunkMeshTask(AChunk* Owner, const FIntVector& ChunkSize, const int32& VoxelSize, const TArray<FVoxelFace>& VoxelData, const TMap<EVoxelType, TArray<FIntVector>>& PlantData, const int32& Index, const EVoxelType& VoxelType)
+	: Owner(Owner), ChunkSize(ChunkSize), VoxelSize(VoxelSize), VoxelData(VoxelData), PlantData(PlantData)
 {
 	VoxelEditIndex = Index;
 	VoxelEditType = VoxelType;
@@ -72,6 +72,7 @@ void ChunkMeshTask::DoWork()
 		VoxelData[VoxelEditIndex].IsValid = true;
 	}
 	UpdateMesh();
+	UpdatePlants();
 
 	AsyncTask(ENamedThreads::GameThread, [&]()
 	{
@@ -92,7 +93,7 @@ FVoxelFace ChunkMeshTask::GetVoxelFace(int32 X, int32 Y, int32 Z, EFaceDirection
 	int32 NeighborIndex = ChunkUtil::Convert3Dto1DIndex(OppositeCoord, ChunkSize);
 	if (ChunkUtil::BoundaryCheck3D(OppositeCoord, ChunkSize))
 	{
-		if (VoxelData[NeighborIndex].Type != EVoxelType::NONE && VoxelData[NeighborIndex].Type != EVoxelType::LEAVES)
+		if (VoxelData[NeighborIndex].Type != EVoxelType::NONE && !VoxelData[NeighborIndex].IsOpacity)
 		{
 			VoxelData[Index].Transparent = true;
 		}
@@ -110,7 +111,8 @@ void ChunkMeshTask::GenerateChunk()
 
 	VoxelData.SetNumUninitialized(ChunkSize.X * ChunkSize.Y * ChunkSize.Z);
 	USimplexNoiseBPLibrary::setNoiseSeed(RandomSeed);
-	FRandomStream RandomStream = FRandomStream(RandomSeed + ChunkLocation.X + ChunkLocation.Y + ChunkLocation.Z);
+	FRandomStream TreeStream = FRandomStream(RandomSeed + (ChunkLocation.X + ChunkLocation.Y * 10000) * ChunkLocation.Z);
+	FRandomStream TallGrassStream = FRandomStream(RandomSeed + (ChunkLocation.X + ChunkLocation.Y * 10000) * ChunkLocation.Z + 1);
 
 	TArray<FIntVector> TreeRoots;
 
@@ -121,52 +123,54 @@ void ChunkMeshTask::GenerateChunk()
 			for (int32 Z = 0; Z < ChunkSize.Z; Z++)
 			{
 				int32 Index = ChunkUtil::Convert3Dto1DIndex(X, Y, Z, ChunkSize);
-
+				
 				FIntVector CurrentChunkLocation;
 				CurrentChunkLocation.X = ChunkLocation.X + X;
 				CurrentChunkLocation.Y = ChunkLocation.Y + Y;
 				CurrentChunkLocation.Z = ChunkLocation.Z + Z;
 
-				float GroundValue = USimplexNoiseBPLibrary::SimplexNoiseScaledFractal2D(CurrentChunkLocation.X, CurrentChunkLocation.Y, 0.01f, 3, 4.0f, 32.0f) * 3.0f;
-				float MountainValue = USimplexNoiseBPLibrary::SimplexNoiseScaledFractal2D(CurrentChunkLocation.X, CurrentChunkLocation.Y, 0.01f, 5, 0.2f, 256.0f, 1.0f, 1.0f) * 64.0f;
-				float Mountain3DMask = USimplexNoiseBPLibrary::SimplexNoiseScaledFractal3D(CurrentChunkLocation.X, CurrentChunkLocation.Y, CurrentChunkLocation.Z, 0.05f);
-				if (MountainValue < 0)
-					MountainValue = 1;
+				float GroundValue = USimplexNoiseBPLibrary::SimplexNoiseScaledFractalInRange2D(CurrentChunkLocation.X, CurrentChunkLocation.Y, 0.0f, 3.0f, 0.01f, 1, 2.0f, 64.0f);
+				float MountainValue = USimplexNoiseBPLibrary::SimplexNoiseScaledFractalInRange2D(CurrentChunkLocation.X, CurrentChunkLocation.Y, 0.0f, 48.0f, 0.01f, 5, 0.4f, 128.0f, 4.0f, 0.25f);
+				float Mountain2DMask = USimplexNoiseBPLibrary::SimplexNoiseScaledFractalInRange2D(CurrentChunkLocation.X, CurrentChunkLocation.Y, 0.0f, 1.0f, 0.01f, 1, 0.1f, 2.0f);
 
-				float NoiseValue = GroundValue + MountainValue;
+				float NoiseValue = GroundValue + MountainValue * Mountain2DMask;
 
 				FVoxelFace VoxelFace = FVoxelFace();
 
-				if (20 < CurrentChunkLocation.Z && Mountain3DMask > 0.4f)
-				{
-					VoxelFace.Type = EVoxelType::NONE;
-					VoxelFace.IsValid = false;
-				}
-				else if (NoiseValue + 8 > CurrentChunkLocation.Z)
+				if (NoiseValue + -1 > CurrentChunkLocation.Z)
 				{
 					VoxelFace.Type = EVoxelType::COBBLESTONE;
 					VoxelFace.IsValid = true;
 				}
-				else if (NoiseValue + 9 > CurrentChunkLocation.Z)
+				else if (NoiseValue + 0 > CurrentChunkLocation.Z)
 				{
 					VoxelFace.Type = EVoxelType::DIRT;
 					VoxelFace.IsValid = true;
 				}
-				else if (NoiseValue + 10 > CurrentChunkLocation.Z)
+				else if (NoiseValue + 1 > CurrentChunkLocation.Z)
 				{
 					VoxelFace.Type = EVoxelType::GRASS;
 					VoxelFace.IsValid = true;
 				}
-				else if (NoiseValue + 11 > CurrentChunkLocation.Z && RandomStream.FRand() < 0.1f)
+				else if (NoiseValue + 2 > CurrentChunkLocation.Z && TallGrassStream.FRand() < 0.3f)
 				{
-					VoxelData[Index].Type = EVoxelType::LOG;
-					VoxelData[Index].IsValid = true;
-					TreeRoots.Add(FIntVector(X, Y, Z));
+					VoxelFace.Type = EVoxelType::TALLGRASS;
+					VoxelFace.IsValid = true;
+					VoxelFace.IsOpacity = true;
+					VoxelFace.HasMesh = true;
+					VoxelFace.Side = EFaceDirection::LEFT;
+
+					if (!PlantData.Contains(VoxelFace.Type))
+					{
+						PlantData.Add(VoxelFace.Type, TArray<FIntVector>());
+					}
+					PlantData[VoxelFace.Type].Add(FIntVector(X, Y, Z));
 				}
-				else
+				else if (NoiseValue + 2 > CurrentChunkLocation.Z && TreeStream.FRand() < 0.1f)
 				{
-					VoxelFace.Type = EVoxelType::NONE;
-					VoxelFace.IsValid = false;
+					VoxelFace.Type = EVoxelType::LOG;
+					VoxelFace.IsValid = true;
+					TreeRoots.Add(FIntVector(X, Y, Z));
 				}
 				VoxelData[Index] = VoxelFace;
 			}
@@ -206,7 +210,7 @@ void ChunkMeshTask::GenerateChunk()
 
 		if (IsTreeValid)
 		{
-			for (int32 Z = 0; Z < 5; Z++)
+			for (int32 Z = 1; Z < 5; Z++)
 			{
 				int32 Index = ChunkUtil::Convert3Dto1DIndex(Root.X, Root.Y, Root.Z + Z, ChunkSize);
 				VoxelData[Index].Type = EVoxelType::LOG;
@@ -224,6 +228,7 @@ void ChunkMeshTask::GenerateChunk()
 						if ((X != 0 || Y != 0) || (Z == 5 && X == 0 && Y == 0))
 						{
 							VoxelData[Index].Type = EVoxelType::LEAVES;
+							VoxelData[Index].IsOpacity = true;
 							VoxelData[Index].IsValid = true;
 						}
 					}
@@ -355,7 +360,7 @@ void ChunkMeshTask::UpdateMesh()
 							 * Here we check the "transparent" attribute in the VoxelFace class to ensure that we don't mesh
 							 * any culled faces.
 							 */
-							if (!Mask[n].Transparent)
+							if (!Mask[n].Transparent && !Mask[n].HasMesh)
 							{
 								/*
 								 * Add quad
@@ -414,6 +419,55 @@ void ChunkMeshTask::UpdateMesh()
 					}
 				}
 			}
+		}
+	}
+}
+
+void ChunkMeshTask::UpdatePlants()
+{
+	for (const auto & Pair : PlantData)
+	{
+		EVoxelType VoxelType = Pair.Key;
+		for (const auto & Coord : Pair.Value)
+		{
+			FIntVector UnderOffset = FIntVector(Coord.X, Coord.Y, Coord.Z - 1);
+			if (ChunkUtil::BoundaryCheck3D(UnderOffset, ChunkSize))
+			{
+				int32 UnderIndex = ChunkUtil::Convert3Dto1DIndex(UnderOffset, ChunkSize);
+				int32 Index = ChunkUtil::Convert3Dto1DIndex(Coord, ChunkSize);
+
+				if (VoxelData[UnderIndex].Type != EVoxelType::GRASS && VoxelData[UnderIndex].Type != EVoxelType::DIRT)
+				{
+					VoxelData[Index].Type = EVoxelType::NONE;
+					VoxelData[Index].IsValid = false;
+					continue;
+				}
+				const float PlaneUnitValue = 0.707107f;
+				UpdateQuad
+				(
+					FVector(PlaneUnitValue + Coord.X + 0.5f, -PlaneUnitValue + Coord.Y + 0.5f, Coord.Z),
+					FVector(PlaneUnitValue + Coord.X + 0.5f, -PlaneUnitValue + Coord.Y + 0.5f, 1 + Coord.Z),
+					FVector(-PlaneUnitValue + Coord.X + 0.5f, PlaneUnitValue + Coord.Y + 0.5f, 1 + Coord.Z),
+					FVector(-PlaneUnitValue + Coord.X + 0.5f, PlaneUnitValue + Coord.Y + 0.5f, Coord.Z),
+					1,
+					1,
+					VoxelData[Index],
+					true
+				);
+
+				UpdateQuad
+				(
+					FVector(PlaneUnitValue + Coord.X + 0.5f, PlaneUnitValue + Coord.Y + 0.5f, Coord.Z),
+					FVector(PlaneUnitValue + Coord.X + 0.5f, PlaneUnitValue + Coord.Y + 0.5f, 1 + Coord.Z),
+					FVector(-PlaneUnitValue + Coord.X + 0.5f, -PlaneUnitValue + Coord.Y + 0.5f, 1 + Coord.Z),
+					FVector(-PlaneUnitValue + Coord.X + 0.5f, -PlaneUnitValue + Coord.Y + 0.5f, Coord.Z),
+					1,
+					1,
+					VoxelData[Index],
+					true
+				);
+			}
+
 		}
 	}
 }

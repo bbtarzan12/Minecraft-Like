@@ -32,7 +32,7 @@ void AMinecraftGameState::SetChunkToLoad(const FIntVector& ActorChunkLocation)
 					continue;
 				}
 
-				ChunkQueue.Enqueue(FVector(CurrentChunkLocation));
+				ChunkQueue.Add(FVector(CurrentChunkLocation));
 				VisitedChunkMap.Add(CurrentChunkLocation, nullptr);
 			}
 		}
@@ -99,17 +99,28 @@ void AMinecraftGameState::CheckPlayerChunkLocation()
 
 void AMinecraftGameState::ProcessChunkQueue()
 {
-	if (ChunkQueue.IsEmpty())
+	if (ChunkQueue.Num() == 0)
 		return;
 
 	const FRotator ChunkRotation = FRotator::ZeroRotator;
 
-	FVector ChunkLocation;
-	ChunkQueue.Dequeue(ChunkLocation);
+	// 임시로 플레이어 0번째를 가져다 씀
+	FVector ActorLoaction = UGameplayStatics::GetPlayerPawn(GetWorld(), 0)->GetActorLocation();
+	Algo::Sort(ChunkQueue, [ActorLoaction](const FVector& A, const FVector& B)
+	{
+		float DistanceA = FVector::DistSquared(ActorLoaction, A);
+		float DistanceB = FVector::DistSquared(ActorLoaction, B);
+
+		return DistanceA < DistanceB;
+	});
+
+	FVector& ChunkLocation = ChunkQueue[0];
 
 	AChunk* Chunk = GetWorld()->SpawnActor<AChunk>(ChunkLocation, ChunkRotation);
 	Chunk->Init(RandomSeed, ChunkSize, NoiseScale, NoiseWeight, VoxelSize);
 
 	check(VisitedChunkMap.Contains(FIntVector(ChunkLocation)));
 	VisitedChunkMap[FIntVector(ChunkLocation)] = Chunk;
+
+	ChunkQueue.RemoveSingle(ChunkLocation);
 }
