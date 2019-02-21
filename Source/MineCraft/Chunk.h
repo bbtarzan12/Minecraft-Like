@@ -8,6 +8,7 @@
 #include "Chunk.generated.h"
 
 class ChunkMeshTask;
+class APlant;
 struct FChunkMesh;
 
 UENUM()
@@ -17,26 +18,36 @@ enum class EFaceDirection : uint8
 };
 
 UENUM()
-enum class EVoxelType : uint8
+enum class EVoxelMaterial : uint8
 {
 	NONE, GRASS, DIRT, COBBLESTONE, LOG, LEAVES, TALLGRASS
 };
+
+UENUM()
+enum class EVoxelType : uint8
+{
+	NONE, Voxel, PlantMesh
+};
+
 
 USTRUCT()
 struct FVoxelFace
 {
 	GENERATED_USTRUCT_BODY()
 	
+	FIntVector Coord;
 	bool Transparent = false;
-	EVoxelType Type = EVoxelType::NONE;
+	EVoxelMaterial Material = EVoxelMaterial::NONE;
+	EVoxelType Type;
 	EFaceDirection Side;
-	bool IsValid = false;
 	bool IsOpacity = false;
 	bool HasMesh = false;
 
 	FORCEINLINE bool operator==(const FVoxelFace & Other) const
 	{
-		return IsValid == true && Other.IsValid == true && Transparent == Other.Transparent && Type == Other.Type && IsOpacity == Other.IsOpacity && HasMesh == Other.HasMesh;
+		if (HasMesh || Other.HasMesh)
+			return false;
+		return Transparent == Other.Transparent && Material == Other.Material && IsOpacity == Other.IsOpacity;
 	}
 	
 };
@@ -77,12 +88,14 @@ public:
 	UPROPERTY()
 	TArray<FVoxelFace> VoxelData;
 
-	TMap<EVoxelType, TArray<FIntVector>> PlantData;
+	UPROPERTY()
+	TArray<APlant*> PlantData;
 
 private:
-	static TMap<EVoxelType, UMaterialInstanceDynamic*> VoxelMaterials;
+	static TMap<EVoxelMaterial, UMaterialInstanceDynamic*> VoxelMaterials;
 	void StartTask();
-	void StartTask(int32 Index, EVoxelType VoxelType);
+	void StartTask(int32 Index, EVoxelMaterial VoxelMaterial, EVoxelType VoxelType);
+	void GeneratePlantMesh(const FVector& GlobalLocation, const EVoxelMaterial& VoxelMaterial, const EVoxelType& VoxelType);
 
 public:
 	// Sets default values for this actor's properties
@@ -93,9 +106,8 @@ protected:
 	virtual void OnConstruction(const FTransform& Transform) override;
 
 public:
-	void SetVoxel(const FVector& GlobalLocation, const EVoxelType& VoxelType);
+	void SetVoxel(const FVector& GlobalLocation, const EVoxelMaterial& VoxelMaterial, const EVoxelType& VoxelType);
 	void Init(int32 RandomSeed, FIntVector ChunkSize, float NoiseScale, float NoiseWeight, int32 VoxelSize);
-	void GenerateMesh(const TMap<EVoxelType, FChunkMesh*>& MeshData);
+	void GenerateMesh(const TMap<EVoxelMaterial, FChunkMesh*>& MeshData);
 	void SetVoxelData(const TArray<FVoxelFace>& VoxelData);
-	void SetPlantData(const TMap<EVoxelType, TArray<FIntVector>>& PlantData);
 };

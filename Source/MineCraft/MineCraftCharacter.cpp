@@ -89,7 +89,7 @@ void AMineCraftCharacter::PlaceVoxel()
 	{
 		if (HitCall.bBlockingHit)
 		{
-			Cast<AMinecraftGameState>(GetWorld()->GetGameState())->SetVoxel(HitCall.ImpactPoint, HitCall.ImpactNormal, EVoxelType::DIRT);
+			Cast<AMinecraftGameState>(GetWorld()->GetGameState())->SetVoxel(HitCall.ImpactPoint, HitCall.ImpactNormal, EVoxelMaterial::DIRT, EVoxelType::Voxel);
 		}
 	}
 }

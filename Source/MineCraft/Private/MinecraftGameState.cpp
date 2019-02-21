@@ -51,7 +51,7 @@ void AMinecraftGameState::Tick(float DeltaSeconds)
 	ProcessChunkQueue();
 }
 
-void AMinecraftGameState::SetVoxel(const FVector& GlobalLocation, const EVoxelType& VoxelType)
+void AMinecraftGameState::SetVoxel(const FVector& GlobalLocation, const EVoxelMaterial& VoxelMaterial, const EVoxelType& VoxelType)
 {
 	bool bCheck = false;
 	for (auto & Pair : VisitedChunkMap)
@@ -63,21 +63,21 @@ void AMinecraftGameState::SetVoxel(const FVector& GlobalLocation, const EVoxelTy
 		{
 			check(bCheck == false);
 			AChunk* Chunk = Pair.Value;
-			Chunk->SetVoxel(GlobalLocation, VoxelType);
+			Chunk->SetVoxel(GlobalLocation, VoxelMaterial, VoxelType);
 			bCheck = true;
 		}
 	}
 	check(bCheck == true);
 }
 
-void AMinecraftGameState::SetVoxel(const FVector& GlobalLocation, const FVector& Normal, const EVoxelType& VoxelType)
+void AMinecraftGameState::SetVoxel(const FVector& GlobalLocation, const FVector& Normal, const EVoxelMaterial& VoxelMaterial, const EVoxelType& VoxelType)
 {
-	SetVoxel(GlobalLocation + Normal * 0.01f, VoxelType);
+	SetVoxel(GlobalLocation + Normal * 0.01f, VoxelMaterial, VoxelType);
 }
 
 void AMinecraftGameState::DeleteVoxel(const FVector& GlobalLocation, const FVector& Forward)
 {
-	SetVoxel(GlobalLocation + Forward * 0.01f, EVoxelType::NONE);
+	SetVoxel(GlobalLocation + Forward * 0.01f, EVoxelMaterial::NONE, EVoxelType::NONE);
 }
 
 void AMinecraftGameState::CheckPlayerChunkLocation()

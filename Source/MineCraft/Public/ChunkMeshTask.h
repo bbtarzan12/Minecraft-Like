@@ -14,6 +14,7 @@ struct FChunkMesh
 {
 	GENERATED_USTRUCT_BODY()
 
+	
 	UPROPERTY()
 	TArray<FVector> Vertices;
 	UPROPERTY()
@@ -35,12 +36,11 @@ class MINECRAFT_API ChunkMeshTask : public FNonAbandonableTask
 
 public:
 	ChunkMeshTask(AChunk* Owner, const FIntVector& ChunkOffset, const FIntVector& ChunkSize, const int32& VoxelSize, const float& NoiseWeight, const float& NoiseScale, const int32& RandomSeed);
-	ChunkMeshTask(AChunk* Owner, const FIntVector& ChunkSize, const int32& VoxelSize, const TArray<FVoxelFace>& VoxelData, const TMap<EVoxelType, TArray<FIntVector>>& PlantData, const int32& Index, const EVoxelType& VoxelType);
+	ChunkMeshTask(AChunk* Owner, const FIntVector& ChunkSize, const int32& VoxelSize, const TArray<FVoxelFace>& VoxelData, const int32& Index, const EVoxelMaterial& VoxelMaterial, const EVoxelType& VoxelType);
 	~ChunkMeshTask();
 
 	TArray<FVoxelFace> VoxelData;
-	TMap<EVoxelType, TArray<FIntVector>> PlantData;
-	TMap<EVoxelType, FChunkMesh*> MeshData;
+	TMap<EVoxelMaterial, FChunkMesh*> MeshData;
 	AChunk* Owner;
 
 	FIntVector ChunkOffset;
@@ -51,6 +51,7 @@ public:
 	int32 RandomSeed = 0;
 
 	int32 VoxelEditIndex = -1;
+	EVoxelMaterial VoxelEditMaterial;
 	EVoxelType VoxelEditType;
 
 private:
@@ -63,7 +64,6 @@ public:
 	FVoxelFace GetVoxelFace(int32 X, int32 Y, int32 Z, EFaceDirection Side);
 	void GenerateChunk();
 	void UpdateMesh();
-	void UpdatePlants();
 	void UpdateQuad(FVector BottomLeft, FVector TopLeft, FVector TopRight, FVector BottomRight, int32 Width, int32 Height, FVoxelFace VoxelFace, bool BackFace);
 
 };

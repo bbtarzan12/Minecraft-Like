@@ -7,8 +7,9 @@
 #include "Async/ParallelFor.h"
 #include "Public/ChunkMeshTask.h"
 #include "Public/ChunkUtil.h"
+#include "Public/Plant.h"
 
-TMap<EVoxelType, UMaterialInstanceDynamic*> AChunk::VoxelMaterials;
+TMap<EVoxelMaterial, UMaterialInstanceDynamic*> AChunk::VoxelMaterials;
 
 // Sets default values
 AChunk::AChunk()
@@ -18,15 +19,15 @@ AChunk::AChunk()
 
 	if (VoxelMaterials.Num() == 0)
 	{
-		const UEnum* VoxelTypePtr = FindObject<UEnum>(ANY_PACKAGE, TEXT("EVoxelType"), true);
+		const UEnum* VoxelTypePtr = FindObject<UEnum>(ANY_PACKAGE, TEXT("EVoxelMaterial"), true);
 		if (VoxelTypePtr != nullptr)
 		{
 			for (int i = 1; i < VoxelTypePtr->NumEnums() - 1; i++)
 			{
-				EVoxelType VoxelType = (EVoxelType) (VoxelTypePtr->GetValueByIndex(i));
+				EVoxelMaterial VoxelType = (EVoxelMaterial) (VoxelTypePtr->GetValueByIndex(i));
 				FName VoxelEnumName = VoxelTypePtr->GetNameByIndex(i);
 				FString VoxelMaterialName = VoxelEnumName.ToString();
-				VoxelMaterialName.RemoveFromStart("EVoxelType::");
+				VoxelMaterialName.RemoveFromStart("EVoxelMaterial::");
 
 				FString MaterialPath = "MaterialInstanceConstant'/Game/Materials/Voxel/";
 				MaterialPath.Append(VoxelMaterialName);
@@ -50,9 +51,16 @@ void AChunk::StartTask()
 }
 
 
-void AChunk::StartTask(int32 Index, EVoxelType VoxelType)
+void AChunk::StartTask(int32 Index, EVoxelMaterial VoxelMaterial, EVoxelType VoxelType)
 {
-	(new FAsyncTask<ChunkMeshTask>(this, ChunkSize, VoxelSize, VoxelData, PlantData, Index, VoxelType))->StartSynchronousTask();
+	(new FAsyncTask<ChunkMeshTask>(this, ChunkSize, VoxelSize, VoxelData, Index, VoxelMaterial, VoxelType))->StartSynchronousTask();
+}
+
+void AChunk::GeneratePlantMesh(const FVector& GlobalLocation, const EVoxelMaterial& VoxelMaterial, const EVoxelType& VoxelType)
+{
+	APlant* Plant = GetWorld()->SpawnActor<APlant>(APlant::StaticClass());
+	Plant->GeneratePlantMesh(GlobalLocation, VoxelMaterial, VoxelType);
+	PlantData.Add(Plant);
 }
 
 void AChunk::OnConstruction(const FTransform& Transform)
@@ -84,16 +92,18 @@ void AChunk::Init(int32 RandomSeed, FIntVector ChunkSize, float NoiseScale, floa
 	StartTask();
 }
 
-void AChunk::GenerateMesh(const TMap<EVoxelType, FChunkMesh*>& MeshData)
+void AChunk::GenerateMesh(const TMap<EVoxelMaterial, FChunkMesh*>& MeshData)
 {
 	ProceduralMeshComponent->ClearAllMeshSections();
 	for (auto & Pair : MeshData)
 	{
 		int32 SectionIndex = (int32)Pair.Key - 1;
 		FChunkMesh* ChunkMesh = Pair.Value;
+		bool bCollider = Pair.Key != EVoxelMaterial::TALLGRASS;
+
 		if (ChunkMesh)
 		{
-			ProceduralMeshComponent->CreateMeshSection(SectionIndex, ChunkMesh->Vertices, ChunkMesh->Triangles, ChunkMesh->Normals, ChunkMesh->UVs, ChunkMesh->VertexColors, ChunkMesh->Tangents, true);
+			ProceduralMeshComponent->CreateMeshSection(SectionIndex, ChunkMesh->Vertices, ChunkMesh->Triangles, ChunkMesh->Normals, ChunkMesh->UVs, ChunkMesh->VertexColors, ChunkMesh->Tangents, bCollider);
 			ProceduralMeshComponent->SetMaterial(SectionIndex, VoxelMaterials[Pair.Key]);
 		}
 	}
@@ -105,19 +115,25 @@ void AChunk::SetVoxelData(const TArray<FVoxelFace>& VoxelData)
 	this->VoxelData = VoxelData;
 }
 
-void AChunk::SetPlantData(const TMap<EVoxelType, TArray<FIntVector>>& PlantData)
+void AChunk::SetVoxel(const FVector& GlobalLocation, const EVoxelMaterial& VoxelMaterial, const EVoxelType& VoxelType)
 {
-	this->PlantData = PlantData;
-}
-
-void AChunk::SetVoxel(const FVector& GlobalLocation, const EVoxelType& VoxelType)
-{
-	FIntVector LocalLocation = ChunkUtil::ConvertGlobalToLocal(GlobalLocation, Location, VoxelSize);
-	int32 Index = ChunkUtil::Convert3Dto1DIndex(LocalLocation, ChunkSize);
+	FIntVector LocalVoxelLocation = ChunkUtil::ConvertGlobalToLocal(GlobalLocation, Location, VoxelSize);
+	int32 Index = ChunkUtil::Convert3Dto1DIndex(LocalVoxelLocation, ChunkSize);
 
 	GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Red, FString::Printf(TEXT("Global Location: %s"), *GlobalLocation.ToString()));
-	GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Red, FString::Printf(TEXT("Local Location: %s"), *LocalLocation.ToString()));
+	GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Red, FString::Printf(TEXT("Local Location: %s"), *LocalVoxelLocation.ToString()));
 	GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Red, FString::Printf(TEXT("Index: %d"), Index));
 
-	StartTask(Index, VoxelType);
+	switch (VoxelType)
+	{
+		case EVoxelType::Voxel:
+			StartTask(Index, VoxelMaterial, VoxelType);
+			break;
+		case EVoxelType::PlantMesh:
+			GeneratePlantMesh(GlobalLocation, VoxelMaterial, VoxelType);
+			break;
+		case EVoxelType::NONE:
+		default:
+			break;
+	}
 }

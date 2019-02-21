@@ -43,10 +43,11 @@ ChunkMeshTask::ChunkMeshTask(AChunk* Owner, const FIntVector& ChunkOffset, const
 	bIsFirstTime = true;
 }
 
-ChunkMeshTask::ChunkMeshTask(AChunk* Owner, const FIntVector& ChunkSize, const int32& VoxelSize, const TArray<FVoxelFace>& VoxelData, const TMap<EVoxelType, TArray<FIntVector>>& PlantData, const int32& Index, const EVoxelType& VoxelType)
-	: Owner(Owner), ChunkSize(ChunkSize), VoxelSize(VoxelSize), VoxelData(VoxelData), PlantData(PlantData)
+ChunkMeshTask::ChunkMeshTask(AChunk* Owner, const FIntVector& ChunkSize, const int32& VoxelSize, const TArray<FVoxelFace>& VoxelData, const int32& Index, const EVoxelMaterial& VoxelMaterial, const EVoxelType& VoxelType)
+	: Owner(Owner), ChunkSize(ChunkSize), VoxelSize(VoxelSize), VoxelData(VoxelData)
 {
 	VoxelEditIndex = Index;
+	VoxelEditMaterial = VoxelMaterial;
 	VoxelEditType = VoxelType;
 	bIsFirstTime = false;
 }
@@ -68,11 +69,13 @@ void ChunkMeshTask::DoWork()
 	}
 	else
 	{
-		VoxelData[VoxelEditIndex].Type = VoxelEditType;
-		VoxelData[VoxelEditIndex].IsValid = true;
+		FVoxelFace& VoxelFace = VoxelData[VoxelEditIndex];
+		VoxelFace.Material = VoxelEditMaterial;
+		VoxelFace.Type = VoxelEditType;
+		VoxelFace.HasMesh = false;
+		VoxelFace.IsOpacity = false;
 	}
 	UpdateMesh();
-	UpdatePlants();
 
 	AsyncTask(ENamedThreads::GameThread, [&]()
 	{
@@ -93,7 +96,7 @@ FVoxelFace ChunkMeshTask::GetVoxelFace(int32 X, int32 Y, int32 Z, EFaceDirection
 	int32 NeighborIndex = ChunkUtil::Convert3Dto1DIndex(OppositeCoord, ChunkSize);
 	if (ChunkUtil::BoundaryCheck3D(OppositeCoord, ChunkSize))
 	{
-		if (VoxelData[NeighborIndex].Type != EVoxelType::NONE && !VoxelData[NeighborIndex].IsOpacity)
+		if (VoxelData[NeighborIndex].Material != EVoxelMaterial::NONE && !VoxelData[NeighborIndex].IsOpacity)
 		{
 			VoxelData[Index].Transparent = true;
 		}
@@ -115,6 +118,7 @@ void ChunkMeshTask::GenerateChunk()
 	FRandomStream TallGrassStream = FRandomStream(RandomSeed + (ChunkLocation.X + ChunkLocation.Y * 10000) * ChunkLocation.Z + 1);
 
 	TArray<FIntVector> TreeRoots;
+	TMap<EVoxelMaterial, TArray<FIntVector>> Plants;
 
 	for (int32 X = 0; X < ChunkSize.X; X++)
 	{
@@ -136,41 +140,36 @@ void ChunkMeshTask::GenerateChunk()
 				float NoiseValue = GroundValue + MountainValue * Mountain2DMask;
 
 				FVoxelFace VoxelFace = FVoxelFace();
+				VoxelFace.Coord = FIntVector(X, Y, Z);
 
 				if (NoiseValue + -1 > CurrentChunkLocation.Z)
 				{
-					VoxelFace.Type = EVoxelType::COBBLESTONE;
-					VoxelFace.IsValid = true;
+					VoxelFace.Material = EVoxelMaterial::COBBLESTONE;
 				}
 				else if (NoiseValue + 0 > CurrentChunkLocation.Z)
 				{
-					VoxelFace.Type = EVoxelType::DIRT;
-					VoxelFace.IsValid = true;
+					VoxelFace.Material = EVoxelMaterial::DIRT;
 				}
 				else if (NoiseValue + 1 > CurrentChunkLocation.Z)
 				{
-					VoxelFace.Type = EVoxelType::GRASS;
-					VoxelFace.IsValid = true;
+					VoxelFace.Material = EVoxelMaterial::GRASS;
 				}
 				else if (NoiseValue + 2 > CurrentChunkLocation.Z && TallGrassStream.FRand() < 0.3f)
 				{
-					VoxelFace.Type = EVoxelType::TALLGRASS;
-					VoxelFace.IsValid = true;
+					VoxelFace.Material = EVoxelMaterial::TALLGRASS;
 					VoxelFace.IsOpacity = true;
 					VoxelFace.HasMesh = true;
-					VoxelFace.Side = EFaceDirection::LEFT;
-
-					if (!PlantData.Contains(VoxelFace.Type))
+					if (!Plants.Contains(VoxelFace.Material))
 					{
-						PlantData.Add(VoxelFace.Type, TArray<FIntVector>());
+						Plants.Add(VoxelFace.Material, TArray<FIntVector>());
 					}
-					PlantData[VoxelFace.Type].Add(FIntVector(X, Y, Z));
+
+					Plants[VoxelFace.Material].Add(VoxelFace.Coord);
 				}
 				else if (NoiseValue + 2 > CurrentChunkLocation.Z && TreeStream.FRand() < 0.1f)
 				{
-					VoxelFace.Type = EVoxelType::LOG;
-					VoxelFace.IsValid = true;
-					TreeRoots.Add(FIntVector(X, Y, Z));
+					VoxelFace.Material = EVoxelMaterial::LOG;
+					TreeRoots.Add(VoxelFace.Coord);
 				}
 				VoxelData[Index] = VoxelFace;
 			}
@@ -197,7 +196,7 @@ void ChunkMeshTask::GenerateChunk()
 						}
 
 						int32 Index = ChunkUtil::Convert3Dto1DIndex(X, Y, Z, ChunkSize);
-						if (VoxelData[Index].Type == EVoxelType::NONE)
+						if (VoxelData[Index].Material == EVoxelMaterial::NONE)
 						{
 							continue;
 						}
@@ -213,8 +212,7 @@ void ChunkMeshTask::GenerateChunk()
 			for (int32 Z = 1; Z < 5; Z++)
 			{
 				int32 Index = ChunkUtil::Convert3Dto1DIndex(Root.X, Root.Y, Root.Z + Z, ChunkSize);
-				VoxelData[Index].Type = EVoxelType::LOG;
-				VoxelData[Index].IsValid = true;
+				VoxelData[Index].Material = EVoxelMaterial::LOG;
 			}
 
 			for (int32 X = -1; X <= 1; X++)
@@ -227,9 +225,8 @@ void ChunkMeshTask::GenerateChunk()
 
 						if ((X != 0 || Y != 0) || (Z == 5 && X == 0 && Y == 0))
 						{
-							VoxelData[Index].Type = EVoxelType::LEAVES;
+							VoxelData[Index].Material = EVoxelMaterial::LEAVES;
 							VoxelData[Index].IsOpacity = true;
-							VoxelData[Index].IsValid = true;
 						}
 					}
 				}
@@ -240,8 +237,28 @@ void ChunkMeshTask::GenerateChunk()
 		else
 		{
 			int32 Index = ChunkUtil::Convert3Dto1DIndex(Root.X, Root.Y, Root.Z, ChunkSize);
-			VoxelData[Index].Type = EVoxelType::NONE;
-			VoxelData[Index].IsValid = false;
+			VoxelData[Index].Material = EVoxelMaterial::NONE;
+		}
+	}
+
+	for (const auto & Pair : Plants)
+	{
+		EVoxelMaterial VoxelType = Pair.Key;
+		for (const auto & Coord : Pair.Value)
+		{
+			FIntVector UnderOffset = FIntVector(Coord.X, Coord.Y, Coord.Z - 1);
+			if (ChunkUtil::BoundaryCheck3D(UnderOffset, ChunkSize))
+			{
+				int32 UnderIndex = ChunkUtil::Convert3Dto1DIndex(UnderOffset, ChunkSize);
+				int32 Index = ChunkUtil::Convert3Dto1DIndex(Coord, ChunkSize);
+
+				if (VoxelData[UnderIndex].Material != EVoxelMaterial::GRASS && VoxelData[UnderIndex].Material != EVoxelMaterial::DIRT)
+				{
+					VoxelData[Index].Material = EVoxelMaterial::NONE;
+					continue;
+				}
+			}
+
 		}
 	}
 }
@@ -251,6 +268,7 @@ void ChunkMeshTask::UpdateMesh()
 	int32 i, j, k, l, w, h, u, v, n;
 	EFaceDirection Side = EFaceDirection::LEFT;
 
+	TArray<FVoxelFace> Plants;
 	TArray<FVoxelFace> Mask;
 	Mask.SetNumUninitialized(ChunkSize.X * ChunkSize.Y);
 
@@ -314,7 +332,7 @@ void ChunkMeshTask::UpdateMesh()
 						 *
 						 * Also, we choose the face to add to the mask depending on whether we're moving through on a backface or not.
 						 */
-						Mask[n++] = ((voxelFace.IsValid && voxelFace1.IsValid && voxelFace == voxelFace1)) ? FVoxelFace() : BackFace ? voxelFace1 : voxelFace;
+						Mask[n++] = ((voxelFace.Material != EVoxelMaterial::NONE && voxelFace1.Material != EVoxelMaterial::NONE && voxelFace == voxelFace1)) ? FVoxelFace() : BackFace ? voxelFace1 : voxelFace;
 					}
 				}
 
@@ -330,14 +348,18 @@ void ChunkMeshTask::UpdateMesh()
 
 					for (i = 0; i < ChunkSize.X;)
 					{
+						if (Mask[n].HasMesh)
+						{
+							Plants.Add(Mask[n]);
+						}
 
-						if (Mask[n].IsValid && Mask[n].Type != EVoxelType::NONE)
+						if (Mask[n].Material != EVoxelMaterial::NONE)
 						{
 
 							/*
 							 * We compute the width
 							 */
-							for (w = 1; i + w < ChunkSize.X && Mask[n + w].IsValid && Mask[n + w] == Mask[n]; w++) {}
+							for (w = 1; i + w < ChunkSize.X && Mask[n + w].Material != EVoxelMaterial::NONE && Mask[n + w] == Mask[n]; w++) {}
 
 							/*
 							 * Then we compute height
@@ -350,7 +372,7 @@ void ChunkMeshTask::UpdateMesh()
 								for (k = 0; k < w; k++)
 								{
 
-									if (!Mask[n + k + h * ChunkSize.X].IsValid || !(Mask[n + k + h * ChunkSize.X] == Mask[n])) { done = true; break; }
+									if (Mask[n + k + h * ChunkSize.X].Material == EVoxelMaterial::NONE || !(Mask[n + k + h * ChunkSize.X] == Mask[n])) { done = true; break; }
 								}
 
 								if (done) { break; }
@@ -421,68 +443,49 @@ void ChunkMeshTask::UpdateMesh()
 			}
 		}
 	}
-}
 
-void ChunkMeshTask::UpdatePlants()
-{
-	for (const auto & Pair : PlantData)
+	for (auto & Plant : Plants)
 	{
-		EVoxelType VoxelType = Pair.Key;
-		for (const auto & Coord : Pair.Value)
-		{
-			FIntVector UnderOffset = FIntVector(Coord.X, Coord.Y, Coord.Z - 1);
-			if (ChunkUtil::BoundaryCheck3D(UnderOffset, ChunkSize))
-			{
-				int32 UnderIndex = ChunkUtil::Convert3Dto1DIndex(UnderOffset, ChunkSize);
-				int32 Index = ChunkUtil::Convert3Dto1DIndex(Coord, ChunkSize);
+		const float PlaneUnitValue = 0.4f;
+		FIntVector& Coord = Plant.Coord;
+		Plant.Side = EFaceDirection::RIGHT;
+		UpdateQuad
+		(
+			FVector(PlaneUnitValue + Coord.X + 0.5f, -PlaneUnitValue + Coord.Y + 0.5f, Coord.Z),
+			FVector(PlaneUnitValue + Coord.X + 0.5f, -PlaneUnitValue + Coord.Y + 0.5f, PlaneUnitValue * 2 + Coord.Z),
+			FVector(-PlaneUnitValue + Coord.X + 0.5f, PlaneUnitValue + Coord.Y + 0.5f, PlaneUnitValue * 2 + Coord.Z),
+			FVector(-PlaneUnitValue + Coord.X + 0.5f, PlaneUnitValue + Coord.Y + 0.5f, Coord.Z),
+			1,
+			1,
+			Plant,
+			true
+		);
 
-				if (VoxelData[UnderIndex].Type != EVoxelType::GRASS && VoxelData[UnderIndex].Type != EVoxelType::DIRT)
-				{
-					VoxelData[Index].Type = EVoxelType::NONE;
-					VoxelData[Index].IsValid = false;
-					continue;
-				}
-				const float PlaneUnitValue = 0.707107f;
-				UpdateQuad
-				(
-					FVector(PlaneUnitValue + Coord.X + 0.5f, -PlaneUnitValue + Coord.Y + 0.5f, Coord.Z),
-					FVector(PlaneUnitValue + Coord.X + 0.5f, -PlaneUnitValue + Coord.Y + 0.5f, 1 + Coord.Z),
-					FVector(-PlaneUnitValue + Coord.X + 0.5f, PlaneUnitValue + Coord.Y + 0.5f, 1 + Coord.Z),
-					FVector(-PlaneUnitValue + Coord.X + 0.5f, PlaneUnitValue + Coord.Y + 0.5f, Coord.Z),
-					1,
-					1,
-					VoxelData[Index],
-					true
-				);
-
-				UpdateQuad
-				(
-					FVector(PlaneUnitValue + Coord.X + 0.5f, PlaneUnitValue + Coord.Y + 0.5f, Coord.Z),
-					FVector(PlaneUnitValue + Coord.X + 0.5f, PlaneUnitValue + Coord.Y + 0.5f, 1 + Coord.Z),
-					FVector(-PlaneUnitValue + Coord.X + 0.5f, -PlaneUnitValue + Coord.Y + 0.5f, 1 + Coord.Z),
-					FVector(-PlaneUnitValue + Coord.X + 0.5f, -PlaneUnitValue + Coord.Y + 0.5f, Coord.Z),
-					1,
-					1,
-					VoxelData[Index],
-					true
-				);
-			}
-
-		}
+		UpdateQuad
+		(
+			FVector(PlaneUnitValue + Coord.X + 0.5f, PlaneUnitValue + Coord.Y + 0.5f, Coord.Z),
+			FVector(PlaneUnitValue + Coord.X + 0.5f, PlaneUnitValue + Coord.Y + 0.5f, PlaneUnitValue * 2 + Coord.Z),
+			FVector(-PlaneUnitValue + Coord.X + 0.5f, -PlaneUnitValue + Coord.Y + 0.5f, PlaneUnitValue * 2 + Coord.Z),
+			FVector(-PlaneUnitValue + Coord.X + 0.5f, -PlaneUnitValue + Coord.Y + 0.5f, Coord.Z),
+			1,
+			1,
+			Plant,
+			true
+		);
 	}
 }
 
 void ChunkMeshTask::UpdateQuad(FVector BottomLeft, FVector TopLeft, FVector TopRight, FVector BottomRight, int32 Width, int32 Height, FVoxelFace VoxelFace, bool BackFace)
 {
 	FChunkMesh* ChunkMesh;
-	if (MeshData.Contains(VoxelFace.Type))
+	if (MeshData.Contains(VoxelFace.Material))
 	{
-		ChunkMesh = MeshData[VoxelFace.Type];
+		ChunkMesh = MeshData[VoxelFace.Material];
 	}
 	else
 	{
 		ChunkMesh = new FChunkMesh();
-		MeshData.Add(VoxelFace.Type, ChunkMesh);
+		MeshData.Add(VoxelFace.Material, ChunkMesh);
 	}
 
 

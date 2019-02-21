@@ -7,6 +7,7 @@
 #include "MinecraftGameState.generated.h"
 
 class AChunk;
+enum class EVoxelMaterial : uint8;
 enum class EVoxelType : uint8;
 
 UCLASS()
@@ -36,7 +37,7 @@ public:
 	FIntVector ChunkIteration = FIntVector(5, 5, 2);
 
 public:
-	void SetVoxel(const FVector& GlobalLocation, const FVector& Normal, const EVoxelType& VoxelType);
+	void SetVoxel(const FVector& GlobalLocation, const FVector& Normal, const EVoxelMaterial& VoxelMaterial, const EVoxelType& VoxelType);
 	void DeleteVoxel(const FVector& GlobalLocation, const FVector& Forward);
 
 protected:
@@ -44,7 +45,7 @@ protected:
 	virtual void Tick(float DeltaSeconds) override;
 
 private:
-	void SetVoxel(const FVector& GlobalLocation, const EVoxelType& VoxelType);
+	void SetVoxel(const FVector& GlobalLocation, const EVoxelMaterial& VoxelMaterial, const EVoxelType& VoxelType);
 	void CheckPlayerChunkLocation();
 	void ProcessChunkQueue();
 	void SetChunkToLoad(const FIntVector& ActorChunkLocation);
