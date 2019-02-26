@@ -1,0 +1,18 @@
+{
+	"FileVersion": 3,
+	"EngineAssociation": "4.21",
+	"Category": "",
+	"Description": "",
+	"Modules": [
+		{
+			"Name": "CubicWorld",
+			"Type": "Runtime",
+			"LoadingPhase": "Default",
+      "AdditionalDependencies": [
+        "CoreUObject",
+        "Engine",
+        "ProceduralMeshComponent"
+      ]
+		}
+	]
+}
